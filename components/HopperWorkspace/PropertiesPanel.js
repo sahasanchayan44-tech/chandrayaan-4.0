@@ -23,16 +23,19 @@ export default function PropertiesPanel({
     if (!selectedNode) return;
     setFbProps(null);
 
+    const rawId = selectedNode.id || selectedNode.name.split(':')[1]?.trim() || selectedNode.name;
+    const nodeId = String(rawId).toLowerCase().replace(/[^a-z0-9]/g, '-');
+
     async function loadPropertiesFromFirebase() {
       try {
-        const docRef = doc(db, 'component_properties', selectedNode.id);
+        const docRef = doc(db, 'component_properties', nodeId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setFbProps(docSnap.data());
-          console.log(`Loaded real-time properties for ${selectedNode.id} from Firebase:`, docSnap.data());
+          console.log(`Loaded real-time properties for ${nodeId} from Firebase:`, docSnap.data());
         }
       } catch (err) {
-        console.warn(`Firestore property query deferred for ${selectedNode.id}:`, err.message);
+        console.warn(`Firestore property query deferred for ${nodeId}:`, err.message);
       }
     }
     loadPropertiesFromFirebase();

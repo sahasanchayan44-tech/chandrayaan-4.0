@@ -313,28 +313,29 @@ export default function Dashboard() {
   }
 
   function jsSha256(str) {
-    function rotateRight(n, x) {
+    function rotateRight(x, n) {
       return (x >>> n) | (x << (32 - n));
     }
-    const mathPow = Math.pow;
-    const maxWord = mathPow(2, 32);
+    
+    const maxWord = Math.pow(2, 32);
+    let hash = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19
+    ];
+    const K = [
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
+    ];
+    
     const result = [];
     const words = [];
     let strLen = str.length * 8;
-    
-    const K = [];
-    let H = [];
-    let primeCounter = 0;
-    const isPrime = {};
-    for (let candidate = 2; primeCounter < 64; candidate++) {
-      if (!isPrime[candidate]) {
-        for (let i = candidate; i < 311; i += candidate) {
-          isPrime[i] = true;
-        }
-        H[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
-        K[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
-      }
-    }
     
     str += '\x80';
     while (str.length % 64 - 56) str += '\x00';
@@ -347,37 +348,42 @@ export default function Dashboard() {
     
     for (let j = 0; j < words.length; ) {
       const w = words.slice(j, j += 16);
-      const oldH = H.slice(0);
+      let oldHash = hash.slice(0);
+      
       for (let i = 0; i < 64; i++) {
-        const wItem = i < 16 ? w[i] : (
-          (rotateRight(17, w[i - 2]) ^ rotateRight(19, w[i - 2]) ^ (w[i - 2] >>> 10)) +
-          w[i - 7] +
-          (rotateRight(7, w[i - 15]) ^ rotateRight(18, w[i - 15]) ^ (w[i - 15] >>> 3)) +
-          w[i - 16]
-        ) | 0;
-        const a = H[0], e = H[4];
-        const temp1 = (H[7] +
-          (rotateRight(6, e) ^ rotateRight(11, e) ^ rotateRight(25, e)) +
-          ((e & H[5]) ^ (~e & H[6])) +
+        if (i >= 16) {
+          w[i] = (
+            (rotateRight(w[i - 2], 17) ^ rotateRight(w[i - 2], 19) ^ (w[i - 2] >>> 10)) +
+            w[i - 7] +
+            (rotateRight(w[i - 15], 7) ^ rotateRight(w[i - 15], 18) ^ (w[i - 15] >>> 3)) +
+            w[i - 16]
+          ) | 0;
+        }
+        const wItem = w[i];
+        
+        const a = hash[0], e = hash[4];
+        const temp1 = (hash[7] +
+          (rotateRight(e, 6) ^ rotateRight(e, 11) ^ rotateRight(e, 25)) +
+          ((e & hash[5]) ^ (~e & hash[6])) +
           K[i] +
           wItem
         ) | 0;
-        const temp2 = ((rotateRight(2, a) ^ rotateRight(13, a) ^ rotateRight(22, a)) +
-          ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]))
+        
+        const temp2 = ((rotateRight(a, 2) ^ rotateRight(a, 13) ^ rotateRight(a, 22)) +
+          ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]))
         ) | 0;
         
-        const nextH = [(temp1 + temp2) | 0];
-        nextH.push(H[0], H[1], H[2]);
-        nextH.push((H[3] + temp1) | 0);
-        nextH.push(H[4], H[5], H[6]);
-        H = nextH;
+        hash = [(temp1 + temp2) | 0].concat(hash);
+        hash[4] = (hash[4] + temp1) | 0;
+        hash.length = 8;
       }
+      
       for (let i = 0; i < 8; i++) {
-        H[i] = (H[i] + oldH[i]) | 0;
+        hash[i] = (hash[i] + oldHash[i]) | 0;
       }
     }
     for (let i = 0; i < 8; i++) {
-      let word = H[i];
+      let word = hash[i];
       if (word < 0) word += maxWord;
       result.push(word.toString(16).padStart(8, '0'));
     }

@@ -28,7 +28,7 @@ export async function POST(request) {
       file: {
         name: safeName,
         size: file.size,
-        url: `/chandrayaan-4.0/chandrayaan/${encodeURIComponent(safeName)}`
+        url: `/chandrayaan/${encodeURIComponent(safeName)}`
       }
     });
   } catch (err) {

@@ -470,7 +470,7 @@ export default function Dashboard() {
     writeLog('Refreshing secure file inventory...');
     try {
       if (mode === 'local') {
-        const response = await fetch('/chandrayaan-4.0/api/files');
+        const response = await fetch('/api/files');
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         setFiles(data);
@@ -539,7 +539,7 @@ export default function Dashboard() {
             const formData = new FormData();
             formData.append('file', encryptedBlob, encFilename);
 
-            const response = await fetch('/chandrayaan-4.0/api/upload', {
+            const response = await fetch('/api/upload', {
               method: 'POST',
               body: formData
             });
@@ -658,7 +658,7 @@ export default function Dashboard() {
     writeLog(`Initiating delete request for: ${filename}`);
     try {
       if (currentMode === 'local') {
-        const response = await fetch(`/chandrayaan-4.0/api/files/${encodeURIComponent(filename)}`, {
+        const response = await fetch(`/api/files/${encodeURIComponent(filename)}`, {
           method: 'DELETE'
         });
         if (!response.ok) {
@@ -1153,7 +1153,7 @@ export default function Dashboard() {
       const host = window.location.hostname;
       if (host === 'localhost' || host === '127.0.0.1' || host === '') {
         try {
-          const res = await fetch('/chandrayaan-4.0/api/config');
+          const res = await fetch('/api/config');
           if (res.ok) {
             const configData = await res.json();
             const loaded = {
@@ -1588,7 +1588,7 @@ export default function Dashboard() {
                 <div className="slides-wrapper">
                   {/* Slide 0 */}
                   <div className={`slide ${activeSlide === 0 ? 'active' : ''}`}>
-                    <img src="/chandrayaan-4.0/images/rover_schematic.jpg" alt="Indian Lunar Rover Schematic" className="slide-img" />
+                    <img src="/images/rover_schematic.jpg" alt="Indian Lunar Rover Schematic" className="slide-img" />
                     <div className="slide-caption">
                       <h3>Pragyan 4.0 Schematic Blueprint</h3>
                       <p>Futuristic technical schematic of the Indian lunar rover including LIBS spectrometer, robotic arm, and solar cell configuration.</p>
@@ -1596,7 +1596,7 @@ export default function Dashboard() {
                   </div>
                   {/* Slide 1 */}
                   <div className={`slide ${activeSlide === 1 ? 'active' : ''}`}>
-                    <img src="/chandrayaan-4.0/images/crater_water_map.jpg" alt="Shackleton Crater Water Ice Map" className="slide-img" />
+                    <img src="/images/crater_water_map.jpg" alt="Shackleton Crater Water Ice Map" className="slide-img" />
                     <div className="slide-caption">
                       <h3>Shackleton Crater Water Distribution</h3>
                       <p>Thermal and spectroscopic scan showing water ice concentration deposits (green/blue signatures) in shadowed lunar craters.</p>
@@ -1604,7 +1604,7 @@ export default function Dashboard() {
                   </div>
                   {/* Slide 2 */}
                   <div className={`slide ${activeSlide === 2 ? 'active' : ''}`}>
-                    <img src="/chandrayaan-4.0/images/landing_workflow.jpg" alt="Lunar Landing Site Workflow" className="slide-img" />
+                    <img src="/images/landing_workflow.jpg" alt="Lunar Landing Site Workflow" className="slide-img" />
                     <div className="slide-caption">
                       <h3>Touchdown Site Workflow Protocol</h3>
                       <p>Strategic stages: Orbital Scanning, Slope Gradients (&lt;10° threshold), Solar Illumination, and Touchdown Lock.</p>

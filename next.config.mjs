@@ -4,7 +4,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: '/chandrayaan-4.0',
 };
 
 export default nextConfig;

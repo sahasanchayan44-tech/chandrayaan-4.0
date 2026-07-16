@@ -26,7 +26,7 @@ export async function GET() {
         name: file,
         size: stats.size,
         mtime: stats.mtime,
-        url: `/chandrayaan-4.0/chandrayaan/${encodeURIComponent(file)}`
+        url: `/chandrayaan/${encodeURIComponent(file)}`
       };
     }).filter(Boolean);
 

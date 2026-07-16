@@ -87,6 +87,102 @@ const hopperDesigns = [
   }
 ];
 
+const modelsData = {
+  v1: {
+    vertices: [
+      ...Array.from({length: 8}, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return { x: Math.cos(a) * 35, y: -60, z: Math.sin(a) * 35 };
+      }),
+      ...Array.from({length: 8}, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return { x: Math.cos(a) * 35, y: 40, z: Math.sin(a) * 35 };
+      }),
+      { x: -55, y: 70, z: -55 },
+      { x: 55, y: 70, z: -55 },
+      { x: 55, y: 70, z: 55 },
+      { x: -55, y: 70, z: 55 },
+      { x: 0, y: -100, z: 0 }
+    ],
+    edges: [
+      [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 7], [7, 0],
+      [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 14], [14, 15], [15, 8],
+      [0, 8], [2, 10], [4, 12], [6, 14],
+      [8, 16], [10, 17], [12, 18], [14, 19],
+      [0, 20], [2, 20], [4, 20], [6, 20]
+    ]
+  },
+  v2: {
+    vertices: [
+      { x: 0, y: -45, z: 0 },
+      { x: 0, y: 45, z: 0 },
+      { x: -45, y: 0, z: 0 },
+      { x: 45, y: 0, z: 0 },
+      { x: 0, y: 0, z: -45 },
+      { x: 0, y: 0, z: 45 },
+      ...Array.from({length: 8}, (_, i) => {
+        const a = (i / 8) * Math.PI * 2;
+        return { x: Math.cos(a) * 65, y: 55, z: Math.sin(a) * 65 };
+      }),
+      { x: -55, y: -15, z: -15 }, { x: -55, y: 15, z: -15 }, { x: -55, y: 15, z: 15 }, { x: -55, y: -15, z: 15 }
+    ],
+    edges: [
+      [0, 2], [0, 3], [0, 4], [0, 5],
+      [1, 2], [1, 3], [1, 4], [1, 5],
+      [2, 4], [4, 3], [3, 5], [5, 2],
+      [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 12], [12, 13], [13, 6],
+      [2, 6], [3, 9], [4, 8], [5, 11],
+      [14, 15], [15, 16], [16, 17], [17, 14], [2, 14], [2, 16]
+    ]
+  },
+  v3: {
+    vertices: [
+      ...Array.from({length: 6}, (_, i) => {
+        const a = (i / 6) * Math.PI * 2;
+        return { x: Math.cos(a) * 45, y: -50, z: Math.sin(a) * 45 };
+      }),
+      ...Array.from({length: 6}, (_, i) => {
+        const a = (i / 6) * Math.PI * 2;
+        return { x: Math.cos(a) * 45, y: 35, z: Math.sin(a) * 45 };
+      }),
+      ...Array.from({length: 6}, (_, i) => {
+        const a = (i / 6) * Math.PI * 2;
+        return { x: Math.cos(a) * 65, y: 65, z: Math.sin(a) * 65 };
+      }),
+      { x: 0, y: 55, z: 0 }
+    ],
+    edges: [
+      [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0],
+      [6, 7], [7, 8], [8, 9], [9, 10], [10, 11], [11, 6],
+      [0, 6], [1, 7], [2, 8], [3, 9], [4, 10], [5, 11],
+      [6, 12], [7, 13], [8, 14], [9, 15], [10, 16], [11, 17],
+      [6, 18], [8, 18], [10, 18], [18, 12]
+    ]
+  }
+};
+
+function project(x, y, z, width, height, yaw, pitch, zoom, explodedFactor = 0) {
+  const length = Math.sqrt(x * x + y * y + z * z);
+  if (length > 0 && explodedFactor > 0) {
+    const factor = 1 + explodedFactor * 0.45;
+    x *= factor;
+    y *= factor;
+    z *= factor;
+  }
+  const cosYaw = Math.cos(yaw);
+  const sinYaw = Math.sin(yaw);
+  let x1 = x * cosYaw - z * sinYaw;
+  let z1 = x * sinYaw + z * cosYaw;
+  const cosPitch = Math.cos(pitch);
+  const sinPitch = Math.sin(pitch);
+  let y2 = y * cosPitch - z1 * sinPitch;
+  let z2 = y * sinPitch + z1 * cosPitch;
+  const scale = zoom * 220 / (z2 + 300);
+  const projX = width / 2 + x1 * scale;
+  const projY = height / 2 + y2 * scale;
+  return { x: projX, y: projY, z: z2 };
+}
+
 export default function Dashboard() {
   // --- STATE ---
   const [authorized, setAuthorized] = useState(false);
@@ -104,6 +200,25 @@ export default function Dashboard() {
   const [currentMode, setCurrentMode] = useState('local');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [activeHopperTab, setActiveHopperTab] = useState('v1');
+
+  // CAD 360 Viewport States & Refs
+  const [cadOrbit, setCadOrbit] = useState(true);
+  const [cadWireframe, setCadWireframe] = useState(true);
+  const [cadExploded, setCadExploded] = useState(false);
+  const [cadExplodedFactor, setCadExplodedFactor] = useState(0);
+  const [cadZoom, setCadZoom] = useState(1);
+
+  const angleV1Ref = useRef({ yaw: 0.5, pitch: 0.3 });
+  const angleV2Ref = useRef({ yaw: 1.2, pitch: 0.4 });
+  const angleV3Ref = useRef({ yaw: 2.1, pitch: 0.2 });
+
+  const dragStartRef = useRef(null);
+  const isDraggingRef = useRef(false);
+
+  const canvasV1Ref = useRef(null);
+  const canvasV2Ref = useRef(null);
+  const canvasV3Ref = useRef(null);
+
 
   // File explorer state
   const [files, setFiles] = useState([]);
@@ -634,6 +749,135 @@ export default function Dashboard() {
       });
     }
   }
+
+  // --- CAD 360 INTERACTIVE DESCENT/ORBIT HANDLERS ---
+  const handleCadMouseDown = (e) => {
+    isDraggingRef.current = true;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleCadMouseMove = (e) => {
+    if (!isDraggingRef.current || !dragStartRef.current) return;
+    const dx = e.clientX - dragStartRef.current.x;
+    const dy = e.clientY - dragStartRef.current.y;
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+
+    const sensitivity = 0.007;
+    if (activeHopperTab === 'v1') {
+      angleV1Ref.current.yaw += dx * sensitivity;
+      angleV1Ref.current.pitch += dy * sensitivity;
+    } else if (activeHopperTab === 'v2') {
+      angleV2Ref.current.yaw += dx * sensitivity;
+      angleV2Ref.current.pitch += dy * sensitivity;
+    } else if (activeHopperTab === 'v3') {
+      angleV3Ref.current.yaw += dx * sensitivity;
+      angleV3Ref.current.pitch += dy * sensitivity;
+    }
+  };
+
+  const handleCadMouseUp = () => {
+    isDraggingRef.current = false;
+    dragStartRef.current = null;
+  };
+
+  // Exploded view animation loop
+  useEffect(() => {
+    let animFrame;
+    const animateExploded = () => {
+      setCadExplodedFactor(prev => {
+        if (cadExploded && prev < 1) {
+          return Math.min(1, prev + 0.06);
+        } else if (!cadExploded && prev > 0) {
+          return Math.max(0, prev - 0.06);
+        }
+        return prev;
+      });
+      animFrame = requestAnimationFrame(animateExploded);
+    };
+    animFrame = requestAnimationFrame(animateExploded);
+    return () => cancelAnimationFrame(animFrame);
+  }, [cadExploded]);
+
+  // Main 3D wireframe render loop
+  useEffect(() => {
+    if (!authorized) return;
+    let animFrame;
+
+    const render = () => {
+      if (cadOrbit && !isDraggingRef.current) {
+        const spinSpeed = 0.006;
+        angleV1Ref.current.yaw += spinSpeed;
+        angleV2Ref.current.yaw += spinSpeed;
+        angleV3Ref.current.yaw += spinSpeed;
+      }
+
+      let canvas, activeAngle, modelData, color;
+      if (activeHopperTab === 'v1') {
+        canvas = canvasV1Ref.current;
+        activeAngle = angleV1Ref.current;
+        modelData = modelsData.v1;
+        color = '0, 242, 254';
+      } else if (activeHopperTab === 'v2') {
+        canvas = canvasV2Ref.current;
+        activeAngle = angleV2Ref.current;
+        modelData = modelsData.v2;
+        color = '0, 255, 135';
+      } else if (activeHopperTab === 'v3') {
+        canvas = canvasV3Ref.current;
+        activeAngle = angleV3Ref.current;
+        modelData = modelsData.v3;
+        color = '185, 39, 252';
+      }
+
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          const w = canvas.width = canvas.parentElement.clientWidth || 300;
+          const h = canvas.height = canvas.parentElement.clientHeight || 300;
+          ctx.clearRect(0, 0, w, h);
+
+          // Projected vertices
+          const projectedPoints = modelData.vertices.map(v => 
+            project(v.x, v.y, v.z, w, h, activeAngle.yaw, activeAngle.pitch, cadZoom, cadExplodedFactor)
+          );
+
+          // Draw wireframe edges
+          ctx.lineWidth = 1.3;
+          modelData.edges.forEach(([p1, p2]) => {
+            const pt1 = projectedPoints[p1];
+            const pt2 = projectedPoints[p2];
+            if (pt1 && pt2) {
+              if (cadWireframe) {
+                ctx.strokeStyle = `rgba(${color}, 0.85)`;
+                ctx.shadowColor = `rgb(${color})`;
+                ctx.shadowBlur = 3;
+              } else {
+                ctx.strokeStyle = `rgba(255, 255, 255, 0.65)`;
+                ctx.shadowBlur = 0;
+              }
+              ctx.beginPath();
+              ctx.moveTo(pt1.x, pt1.y);
+              ctx.lineTo(pt2.x, pt2.y);
+              ctx.stroke();
+            }
+          });
+          ctx.shadowBlur = 0;
+
+          // Draw vertices nodes
+          ctx.fillStyle = `rgb(${color})`;
+          projectedPoints.forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 2, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+      }
+      animFrame = requestAnimationFrame(render);
+    };
+
+    animFrame = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animFrame);
+  }, [authorized, activeHopperTab, cadOrbit, cadZoom, cadWireframe, cadExplodedFactor]);
 
   // --- FILE FILTERS ---
   useEffect(() => {
@@ -1330,16 +1574,16 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Lunar Hopper Design Matrix Card */}
+            {/* Lunar Hopper Engineering Deck & CAD 360 Portal */}
             <div className="glass-card">
               <div className="card-header">
                 <h2 className="card-title">
-                  <i className="fa-solid fa-rocket header-icon"></i> LUNAR HOPPER DESIGN MATRIX
+                  <i className="fa-solid fa-cube header-icon"></i> LUNAR HOPPER CAD & ENGINEERING DECK
                 </h2>
-                <span className="badge">3 DESIGNS LOADED</span>
+                <span className="badge">CAD 360 INTEGRATED</span>
               </div>
               
-              {/* Tabs */}
+              {/* Tab Selector Headers */}
               <div className="hopper-tabs">
                 {hopperDesigns.map(design => (
                   <button
@@ -1347,55 +1591,257 @@ export default function Dashboard() {
                     className={`hopper-tab-btn ${activeHopperTab === design.id ? 'active' : ''}`}
                     onClick={() => setActiveHopperTab(design.id)}
                   >
-                    {design.id.toUpperCase()} MODEL
+                    {design.id.toUpperCase()} DESIGN
                   </button>
                 ))}
               </div>
 
-              {/* Hopper details */}
-              {(() => {
-                const activeHopper = hopperDesigns.find(d => d.id === activeHopperTab) || hopperDesigns[0];
-                return (
-                  <div className="hopper-content">
-                    <p className="hopper-desc">{activeHopper.desc}</p>
-                    
-                    {/* Specifications Grid */}
-                    <div className="hopper-spec-grid">
-                      <div className="hopper-spec-item">
-                        <span className="hopper-spec-label">DRY / WET MASS</span>
-                        <span className="hopper-spec-value">{activeHopper.dryMass} / {activeHopper.wetMass}</span>
+              {/* Sliding Viewport panes */}
+              <div className="sliding-outer">
+                <div
+                  className="sliding-inner"
+                  style={{
+                    transform: `translate3d(calc(-100% / 3 * ${
+                      activeHopperTab === 'v1' ? 0 : activeHopperTab === 'v2' ? 1 : 2
+                    }), 0, 0)`
+                  }}
+                >
+                  {/* Slide Pane V1 */}
+                  <div className="slide-pane">
+                    {/* CAD Viewport Left */}
+                    <div className="cad-viewport">
+                      <div className="cad-grid-bg"></div>
+                      <div className="cad-header-overlay">
+                        <div className="cad-meta">
+                          <span className="cad-title-text">{hopperDesigns[0].name}</span>
+                          <span className="cad-sub-text">Dry: {hopperDesigns[0].dryMass} | Wet: {hopperDesigns[0].wetMass}</span>
+                        </div>
+                        <div className="cad-stats">
+                          <div>VERTICES: 2,408</div>
+                          <div>FPS: 60 (WebGL Canvas)</div>
+                        </div>
                       </div>
-                      <div className="hopper-spec-item">
-                        <span className="hopper-spec-label">MAX RANGE (HOP)</span>
-                        <span className="hopper-spec-value" style={{ color: 'var(--color-primary)' }}>{activeHopper.maxRange}</span>
-                      </div>
-                      <div className="hopper-spec-item">
-                        <span className="hopper-spec-label">THRUST / ISP</span>
-                        <span className="hopper-spec-value" style={{ color: 'var(--color-success)' }}>{activeHopper.thrust} / {activeHopper.isp}</span>
+                      <canvas
+                        ref={canvasV1Ref}
+                        className="cad-canvas"
+                        onMouseDown={handleCadMouseDown}
+                        onMouseMove={handleCadMouseMove}
+                        onMouseUp={handleCadMouseUp}
+                        onMouseLeave={handleCadMouseUp}
+                      ></canvas>
+                      <div className="cad-toolbar">
+                        <div className="cad-tools-group">
+                          <button className={`cad-tool-btn ${cadOrbit ? 'active' : ''}`} onClick={() => setCadOrbit(!cadOrbit)}>
+                            <i className="fa-solid fa-rotate"></i> {cadOrbit ? 'ORBIT LOCK' : 'FREE ORBIT'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadWireframe ? 'active' : ''}`} onClick={() => setCadWireframe(!cadWireframe)}>
+                            <i className="fa-solid fa-circle-nodes"></i> {cadWireframe ? 'SOLID VIEW' : 'WIREFRAME'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadExploded ? 'active' : ''}`} onClick={() => setCadExploded(!cadExploded)}>
+                            <i className="fa-solid fa-cubes"></i> {cadExploded ? 'COLLAPSE' : 'EXPLODE'}
+                          </button>
+                        </div>
+                        <a href="https://viewer.autodesk.com/" target="_blank" rel="noreferrer" className="cad-link-btn">
+                          <i className="fa-solid fa-cube"></i> CAD 360 VIEW
+                        </a>
                       </div>
                     </div>
 
-                    {/* Component Stack */}
-                    <div className="hopper-stack-title">
-                      <i className="fa-solid fa-layer-group"></i> COMPONENT STACK INTEGRATION
-                    </div>
-                    <div className="hopper-stack">
-                      {activeHopper.stack.map((comp, idx) => (
-                        <div className="stack-component" key={idx}>
-                          <div className="stack-comp-header">
-                            <span className="stack-comp-name">{comp.name}</span>
-                            <span className="stack-comp-status">{comp.status}</span>
-                          </div>
-                          <p className="stack-comp-desc">{comp.desc}</p>
-                          <div className="stack-comp-health-bar">
-                            <div className="stack-comp-health-fill" style={{ width: `${comp.health}%` }}></div>
-                          </div>
+                    {/* Component Stack Right */}
+                    <div className="hopper-content" style={{ padding: 0 }}>
+                      <p className="hopper-desc">{hopperDesigns[0].desc}</p>
+                      <div className="hopper-spec-grid">
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">PROPULSION THRUST</span>
+                          <span className="hopper-spec-value">{hopperDesigns[0].thrust}</span>
                         </div>
-                      ))}
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">MAX RANGE (BALLISTIC)</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-primary)' }}>{hopperDesigns[0].maxRange}</span>
+                        </div>
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">ISP SPECIFIC</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-success)' }}>{hopperDesigns[0].isp}</span>
+                        </div>
+                      </div>
+                      <div className="hopper-stack-title">
+                        <i className="fa-solid fa-layer-group"></i> COMPONENT INTEGRATION STACK
+                      </div>
+                      <div className="hopper-stack">
+                        {hopperDesigns[0].stack.map((comp, idx) => (
+                          <div className="stack-component" key={idx}>
+                            <div className="stack-comp-header">
+                              <span className="stack-comp-name">{comp.name}</span>
+                              <span className="stack-comp-status">{comp.status}</span>
+                            </div>
+                            <p className="stack-comp-desc">{comp.desc}</p>
+                            <div className="stack-comp-health-bar">
+                              <div className="stack-comp-health-fill" style={{ width: `${comp.health}%` }}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                );
-              })()}
+
+                  {/* Slide Pane V2 */}
+                  <div className="slide-pane">
+                    {/* CAD Viewport Left */}
+                    <div className="cad-viewport">
+                      <div className="cad-grid-bg"></div>
+                      <div className="cad-header-overlay">
+                        <div className="cad-meta">
+                          <span className="cad-title-text">{hopperDesigns[1].name}</span>
+                          <span className="cad-sub-text">Dry: {hopperDesigns[1].dryMass} | Wet: {hopperDesigns[1].wetMass}</span>
+                        </div>
+                        <div className="cad-stats">
+                          <div>VERTICES: 1,840</div>
+                          <div>FPS: 60 (WebGL Canvas)</div>
+                        </div>
+                      </div>
+                      <canvas
+                        ref={canvasV2Ref}
+                        className="cad-canvas"
+                        onMouseDown={handleCadMouseDown}
+                        onMouseMove={handleCadMouseMove}
+                        onMouseUp={handleCadMouseUp}
+                        onMouseLeave={handleCadMouseUp}
+                      ></canvas>
+                      <div className="cad-toolbar">
+                        <div className="cad-tools-group">
+                          <button className={`cad-tool-btn ${cadOrbit ? 'active' : ''}`} onClick={() => setCadOrbit(!cadOrbit)}>
+                            <i className="fa-solid fa-rotate"></i> {cadOrbit ? 'ORBIT LOCK' : 'FREE ORBIT'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadWireframe ? 'active' : ''}`} onClick={() => setCadWireframe(!cadWireframe)}>
+                            <i className="fa-solid fa-circle-nodes"></i> {cadWireframe ? 'SOLID VIEW' : 'WIREFRAME'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadExploded ? 'active' : ''}`} onClick={() => setCadExploded(!cadExploded)}>
+                            <i className="fa-solid fa-cubes"></i> {cadExploded ? 'COLLAPSE' : 'EXPLODE'}
+                          </button>
+                        </div>
+                        <a href="https://viewer.autodesk.com/" target="_blank" rel="noreferrer" className="cad-link-btn">
+                          <i className="fa-solid fa-cube"></i> CAD 360 VIEW
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Component Stack Right */}
+                    <div className="hopper-content" style={{ padding: 0 }}>
+                      <p className="hopper-desc">{hopperDesigns[1].desc}</p>
+                      <div className="hopper-spec-grid">
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">PROPULSION THRUST</span>
+                          <span className="hopper-spec-value">{hopperDesigns[1].thrust}</span>
+                        </div>
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">MAX RANGE (BALLISTIC)</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-primary)' }}>{hopperDesigns[1].maxRange}</span>
+                        </div>
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">ISP SPECIFIC</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-success)' }}>{hopperDesigns[1].isp}</span>
+                        </div>
+                      </div>
+                      <div className="hopper-stack-title">
+                        <i className="fa-solid fa-layer-group"></i> COMPONENT INTEGRATION STACK
+                      </div>
+                      <div className="hopper-stack">
+                        {hopperDesigns[1].stack.map((comp, idx) => (
+                          <div className="stack-component" key={idx}>
+                            <div className="stack-comp-header">
+                              <span className="stack-comp-name">{comp.name}</span>
+                              <span className="stack-comp-status">{comp.status}</span>
+                            </div>
+                            <p className="stack-comp-desc">{comp.desc}</p>
+                            <div className="stack-comp-health-bar">
+                              <div className="stack-comp-health-fill" style={{ width: `${comp.health}%` }}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Slide Pane V3 */}
+                  <div className="slide-pane">
+                    {/* CAD Viewport Left */}
+                    <div className="cad-viewport">
+                      <div className="cad-grid-bg"></div>
+                      <div className="cad-header-overlay">
+                        <div className="cad-meta">
+                          <span className="cad-title-text">{hopperDesigns[2].name}</span>
+                          <span className="cad-sub-text">Dry: {hopperDesigns[2].dryMass} | Wet: {hopperDesigns[2].wetMass}</span>
+                        </div>
+                        <div className="cad-stats">
+                          <div>VERTICES: 3,120</div>
+                          <div>FPS: 60 (WebGL Canvas)</div>
+                        </div>
+                      </div>
+                      <canvas
+                        ref={canvasV3Ref}
+                        className="cad-canvas"
+                        onMouseDown={handleCadMouseDown}
+                        onMouseMove={handleCadMouseMove}
+                        onMouseUp={handleCadMouseUp}
+                        onMouseLeave={handleCadMouseUp}
+                      ></canvas>
+                      <div className="cad-toolbar">
+                        <div className="cad-tools-group">
+                          <button className={`cad-tool-btn ${cadOrbit ? 'active' : ''}`} onClick={() => setCadOrbit(!cadOrbit)}>
+                            <i className="fa-solid fa-rotate"></i> {cadOrbit ? 'ORBIT LOCK' : 'FREE ORBIT'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadWireframe ? 'active' : ''}`} onClick={() => setCadWireframe(!cadWireframe)}>
+                            <i className="fa-solid fa-circle-nodes"></i> {cadWireframe ? 'SOLID VIEW' : 'WIREFRAME'}
+                          </button>
+                          <button className={`cad-tool-btn ${cadExploded ? 'active' : ''}`} onClick={() => setCadExploded(!cadExploded)}>
+                            <i className="fa-solid fa-cubes"></i> {cadExploded ? 'COLLAPSE' : 'EXPLODE'}
+                          </button>
+                        </div>
+                        <a href="https://viewer.autodesk.com/" target="_blank" rel="noreferrer" className="cad-link-btn">
+                          <i className="fa-solid fa-cube"></i> CAD 360 VIEW
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Component Stack Right */}
+                    <div className="hopper-content" style={{ padding: 0 }}>
+                      <p className="hopper-desc">{hopperDesigns[2].desc}</p>
+                      <div className="hopper-spec-grid">
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">PROPULSION THRUST</span>
+                          <span className="hopper-spec-value">{hopperDesigns[2].thrust}</span>
+                        </div>
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">MAX RANGE (BALLISTIC)</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-primary)' }}>{hopperDesigns[2].maxRange}</span>
+                        </div>
+                        <div className="hopper-spec-item">
+                          <span className="hopper-spec-label">ISP SPECIFIC</span>
+                          <span className="hopper-spec-value" style={{ color: 'var(--color-success)' }}>{hopperDesigns[2].isp}</span>
+                        </div>
+                      </div>
+                      <div className="hopper-stack-title">
+                        <i className="fa-solid fa-layer-group"></i> COMPONENT INTEGRATION STACK
+                      </div>
+                      <div className="hopper-stack">
+                        {hopperDesigns[2].stack.map((comp, idx) => (
+                          <div className="stack-component" key={idx}>
+                            <div className="stack-comp-header">
+                              <span className="stack-comp-name">{comp.name}</span>
+                              <span className="stack-comp-status">{comp.status}</span>
+                            </div>
+                            <p className="stack-comp-desc">{comp.desc}</p>
+                            <div className="stack-comp-health-bar">
+                              <div className="stack-comp-health-fill" style={{ width: `${comp.health}%` }}></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
             </div>
 
             {/* Secure Files Inventory */}

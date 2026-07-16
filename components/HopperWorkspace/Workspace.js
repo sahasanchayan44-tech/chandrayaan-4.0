@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import ComponentTree from './ComponentTree';
 import PropertiesPanel from './PropertiesPanel';
 
@@ -18,6 +18,104 @@ const AssemblyTab = lazy(() => import('./tabs/AssemblyTab'));
 const TestingTab = lazy(() => import('./tabs/TestingTab'));
 const MissionReadinessTab = lazy(() => import('./tabs/MissionReadinessTab'));
 const DocumentationTab = lazy(() => import('./tabs/DocumentationTab'));
+
+// Mathematical kinematics simulator representing lunar gravitational hops
+function computePhysicsStep(i, prev) {
+  const g = 1.62; // lunar gravity (m/s^2)
+  let mass = 250 + (200 * (prev.fuel / 100)); // dry mass + remaining fuel mass
+  
+  let thrust = 0;
+  let combustionTemp = 25;
+  let batteryPower = 45;
+  
+  // Thruster burn schedule (ballistic jump kinematics)
+  if (i < 30) {
+    // Launch burn
+    thrust = 600; // Newtons
+    combustionTemp = 350;
+    batteryPower = 65;
+  } else if (i >= 70 && i < 90) {
+    // Retro-fire landing burn
+    thrust = 420; // Newtons
+    combustionTemp = 280;
+    batteryPower = 60;
+  } else if (i >= 90) {
+    // Touchdown
+    thrust = 0;
+    combustionTemp = 45;
+    batteryPower = 45;
+  } else {
+    // Coasting phase
+    thrust = 0;
+    combustionTemp = 95;
+    batteryPower = 45;
+  }
+  
+  // Acceleration = Thrust / Mass - Gravity
+  let acc = thrust > 0 ? (thrust / mass) - g : -g;
+  if (i >= 90) {
+    acc = 0;
+  }
+  
+  const dt = 0.2;
+  
+  let vel = prev.velocity + acc * dt;
+  let alt = prev.altitude + prev.velocity * dt + 0.5 * acc * dt * dt;
+  
+  if (alt <= 0) {
+    alt = 0;
+    vel = 0;
+    acc = 0;
+  }
+  
+  let fuel = Math.max(0, prev.fuel - (thrust > 0 ? 0.35 * dt : 0));
+  
+  return {
+    altitude: alt,
+    velocity: vel,
+    acceleration: acc,
+    fuel: fuel,
+    power: batteryPower + Math.sin(i / 5) * 2,
+    temperature: combustionTemp + (Math.sin(i) * 3),
+    thrust: thrust
+  };
+}
+
+function generatePhysicsHistoryUpTo(stepIndex) {
+  const history = {
+    altitude: [],
+    velocity: [],
+    acceleration: [],
+    fuel: [],
+    power: [],
+    temperature: [],
+    thrust: []
+  };
+
+  let current = {
+    altitude: 0,
+    velocity: 0,
+    acceleration: 0,
+    fuel: 100,
+    power: 45,
+    temperature: 25,
+    thrust: 0
+  };
+
+  for (let i = 0; i <= stepIndex; i++) {
+    const step = computePhysicsStep(i, current);
+    history.altitude.push(step.altitude);
+    history.velocity.push(step.velocity);
+    history.acceleration.push(step.acceleration);
+    history.fuel.push(step.fuel);
+    history.power.push(step.power);
+    history.temperature.push(step.temperature);
+    history.thrust.push(step.thrust);
+    current = step;
+  }
+
+  return history;
+}
 
 export default function HopperWorkspace({
   activeHopperTab,
@@ -42,6 +140,36 @@ export default function HopperWorkspace({
   const [selectedNode, setSelectedNode] = useState(null);
   const [breadcrumbText, setBreadcrumbText] = useState('');
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('3d_cad');
+
+  // Simulation Global State
+  const [simStatus, setSimStatus] = useState('idle');
+  const [simSpeed, setSimSpeed] = useState(1);
+  const [simTime, setSimTime] = useState(0);
+
+  const resetSimulation = useCallback(() => {
+    setSimTime(0);
+    setSimStatus('idle');
+  }, []);
+
+  // Compute history dynamically on timeline changes
+  const simHistory = useMemo(() => {
+    return generatePhysicsHistoryUpTo(simTime);
+  }, [simTime]);
+
+  // Tick timer loop when active
+  useEffect(() => {
+    if (simStatus !== 'running') return;
+    const interval = setInterval(() => {
+      setSimTime(prev => {
+        if (prev >= 100) {
+          setSimStatus('idle');
+          return 100;
+        }
+        return prev + 1;
+      });
+    }, 150 / simSpeed);
+    return () => clearInterval(interval);
+  }, [simStatus, simSpeed]);
 
   const workspaceTabs = [
     { id: 'overview', label: 'Overview' },
@@ -290,7 +418,16 @@ export default function HopperWorkspace({
 
               {/* 9. Simulation */}
               <div className={activeWorkspaceTab === 'simulation' ? 'w-full h-full block' : 'hidden'}>
-                <SimulationTab />
+                <SimulationTab 
+                  simStatus={simStatus}
+                  setSimStatus={setSimStatus}
+                  simSpeed={simSpeed}
+                  setSimSpeed={setSimSpeed}
+                  simTime={simTime}
+                  setSimTime={setSimTime}
+                  simHistory={simHistory}
+                  resetSimulation={resetSimulation}
+                />
               </div>
 
               {/* 10. Materials */}

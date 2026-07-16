@@ -1,17 +1,24 @@
-import { db } from './firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDocs, 
-  writeBatch, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  limit 
-} from 'firebase/firestore';
+const fs = require('fs');
+const path = require('path');
+const { initializeApp } = require('firebase/app');
+const { getFirestore, doc, setDoc, writeBatch } = require('firebase/firestore');
 
-// Default seed data for all collections
+function parseEnv() {
+  const envPath = path.join(__dirname, '..', '.env');
+  const envContent = fs.readFileSync(envPath, 'utf8');
+  const env = {};
+  envContent.split('\n').forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const idx = trimmed.indexOf('=');
+      if (idx !== -1) {
+        env[trimmed.substring(0, idx).trim()] = trimmed.substring(idx + 1).trim();
+      }
+    }
+  });
+  return env;
+}
+
 const SEED_DATA = {
   component_properties: [
     { id: 'lunar-hopper', uuid: 'CY4-LUNAR-HOPPER-8731', material: 'Al-Li & Carbon Composite', mass: '450.0 kg', density: '3.15 g/cm³', volume: '142.8 L', dimensions: '1500 x 1500 x 1200 mm', temperature: '-180°C / +120°C', power: '120W (Gen)', manufacturer: 'ISRO VSSC Division', revision: 'v1.2.0', status: 'Nominal', health: 100, notes: 'Integrated Vikram hopper assembly unit.' },
@@ -93,128 +100,39 @@ const SEED_DATA = {
   ]
 };
 
-// Seeding engine: Batch writes fallback datasets into Firestore collections
-export async function seedFirebaseCollections() {
-  try {
+async function main() {
+  const env = parseEnv();
+  
+  const firebaseConfig = {
+    apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY,
+    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+    appId: env.NEXT_PUBLIC_FIREBASE_APP_ID,
+    measurementId: env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  };
+  
+  console.log('Initializing Firebase Core SDK...');
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  
+  console.log('Executing Firestore dynamic updates seeding...');
+  
+  for (const [colName, items] of Object.entries(SEED_DATA)) {
+    console.log(`Writing collection: ${colName} (${items.length} items)...`);
     const batch = writeBatch(db);
-    let totalItems = 0;
-
-    for (const [colName, items] of Object.entries(SEED_DATA)) {
-      // Check if collection documents already exist
-      const snap = await getDocs(collection(db, colName));
-      if (snap.empty) {
-        console.log(`Seeding dynamic collection: ${colName} (${items.length} items)...`);
-        items.forEach(item => {
-          const docRef = doc(db, colName, item.id);
-          batch.set(docRef, item);
-          totalItems++;
-        });
-      }
-    }
-
-    if (totalItems > 0) {
-      await batch.commit();
-      console.log(`Successfully completed seeding ${totalItems} engineering elements into Firestore.`);
-    }
-  } catch (err) {
-    console.warn("Firestore database seeding deferred:", err.message);
+    
+    items.forEach(item => {
+      const docRef = doc(db, colName, item.id);
+      batch.set(docRef, item);
+    });
+    
+    await batch.commit();
+    console.log(`Successfully batch-committed: ${colName}`);
   }
+  
+  console.log('Firestore Sync Sequence Complete.');
 }
 
-// Repository Subscriptions Pattern
-export const HopperRepository = {
-  // 1. Subscribe to Component Tree
-  subscribeComponents(onUpdate, onError) {
-    const colRef = collection(db, 'hopper_components');
-    return onSnapshot(colRef, (snapshot) => {
-      const components = [];
-      snapshot.forEach(doc => {
-        components.push(doc.data());
-      });
-      if (components.length > 0) {
-        onUpdate(components);
-      } else {
-        // Fallback to local seeds
-        onUpdate(SEED_DATA.hopper_components);
-      }
-    }, (err) => {
-      console.warn("Component listener offline. Loading local cache:", err.message);
-      if (onError) onError(SEED_DATA.hopper_components);
-    });
-  },
-
-  // Update Component Node with Optimistic Updates UI support
-  async updateComponent(id, updates) {
-    try {
-      const docRef = doc(db, 'hopper_components', id);
-      await setDoc(docRef, updates, { merge: true });
-      return true;
-    } catch (err) {
-      console.error(`Failed to sync updates for node ${id}:`, err);
-      throw err;
-    }
-  },
-
-  // 2. Subscribe to Materials
-  subscribeMaterials(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_materials'), (snapshot) => {
-      const materials = [];
-      snapshot.forEach(doc => materials.push(doc.data()));
-      onUpdate(materials.length > 0 ? materials : SEED_DATA.hopper_materials);
-    }, () => onUpdate(SEED_DATA.hopper_materials));
-  },
-
-  // 3. Subscribe to Simulations
-  subscribeSimulations(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_simulations'), (snapshot) => {
-      const simulations = [];
-      snapshot.forEach(doc => simulations.push(doc.data()));
-      onUpdate(simulations.length > 0 ? simulations : SEED_DATA.hopper_simulations);
-    }, () => onUpdate(SEED_DATA.hopper_simulations));
-  },
-
-  // 4. Subscribe to Design Models
-  subscribeModels(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_models'), (snapshot) => {
-      const models = [];
-      snapshot.forEach(doc => models.push(doc.data()));
-      onUpdate(models.length > 0 ? models : SEED_DATA.hopper_models);
-    }, () => onUpdate(SEED_DATA.hopper_models));
-  },
-
-  // 5. Subscribe to Versions
-  subscribeVersions(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_versions'), (snapshot) => {
-      const versions = [];
-      snapshot.forEach(doc => versions.push(doc.data()));
-      onUpdate(versions.length > 0 ? versions : SEED_DATA.hopper_versions);
-    }, () => onUpdate(SEED_DATA.hopper_versions));
-  },
-
-  // 6. Subscribe to Logs
-  subscribeLogs(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_logs'), (snapshot) => {
-      const logs = [];
-      snapshot.forEach(doc => logs.push(doc.data()));
-      onUpdate(logs.length > 0 ? logs : SEED_DATA.hopper_logs);
-    }, () => onUpdate(SEED_DATA.hopper_logs));
-  },
-
-  // 7. Subscribe to Briefing Documents
-  subscribeDocuments(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_documents'), (snapshot) => {
-      const docs = [];
-      snapshot.forEach(doc => docs.push(doc.data()));
-      onUpdate(docs.length > 0 ? docs : SEED_DATA.hopper_documents);
-    }, () => onUpdate(SEED_DATA.hopper_documents));
-  },
-
-  // 8. Subscribe to Images Mapping
-  subscribeImages(onUpdate) {
-    return onSnapshot(collection(db, 'hopper_images'), (snapshot) => {
-      const imgs = [];
-      snapshot.forEach(doc => imgs.push(doc.data()));
-      onUpdate(imgs.length > 0 ? imgs : SEED_DATA.hopper_images);
-    }, () => onUpdate(SEED_DATA.hopper_images));
-  }
-};
+main().catch(console.error);

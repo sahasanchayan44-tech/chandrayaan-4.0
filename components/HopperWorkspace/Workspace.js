@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import ComponentTree from './ComponentTree';
+import PropertiesPanel from './PropertiesPanel';
 
 export default function HopperWorkspace({
   activeHopperTab,
@@ -369,113 +370,13 @@ export default function HopperWorkspace({
         </div>
 
         {/* RIGHT PANEL: Properties Panel */}
-        <div 
-          style={{ width: rightCollapsed ? '40px' : `${rightWidth}px` }}
-          className="flex flex-col bg-slate-950/40 border-l border-cyan-500/10 relative transition-all duration-200 shrink-0"
-        >
-          {/* Right panel resize handle */}
-          {!rightCollapsed && (
-            <div 
-              onMouseDown={startResizeRight}
-              className="absolute top-0 left-0 w-1 h-full hover:bg-cyan-500/50 cursor-col-resize active:bg-cyan-500 transition-colors z-20"
-            />
-          )}
-
-          {rightCollapsed ? (
-            <div className="flex flex-col items-center py-4 space-y-6 text-slate-400">
-              <button onClick={() => setRightCollapsed(false)} className="hover:text-cyan-400 cursor-pointer">
-                <i className="fa-solid fa-angles-left"></i>
-              </button>
-              <i className="fa-solid fa-chart-simple" title="Properties"></i>
-            </div>
-          ) : (
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex items-center justify-between p-2 border-b border-cyan-500/10 bg-slate-900/40">
-                <div className="flex items-center space-x-1.5">
-                  <i className="fa-solid fa-chart-simple text-cyan-400 text-xs"></i>
-                  <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Properties Panel</span>
-                </div>
-                <button onClick={() => setRightCollapsed(true)} className="p-1 text-[10px] hover:text-cyan-400 cursor-pointer" title="Collapse Panel">
-                  <i className="fa-solid fa-angles-right"></i>
-                </button>
-              </div>
-
-              {/* Scrollable details */}
-              <div className="flex-1 overflow-y-auto p-3 text-xs space-y-4">
-                
-                {selectedNode ? (
-                  <>
-                    <div>
-                      <span className="text-[10px] text-slate-500 block uppercase font-mono">Component Node</span>
-                      <span className="font-bold text-slate-200 break-words">{selectedNode.name.split(':')[1]?.trim() || selectedNode.name}</span>
-                    </div>
-
-                    <div className="border-t border-slate-800 pt-2">
-                      <span className="text-[10px] text-slate-500 block uppercase font-mono">Category</span>
-                      <span className="text-slate-300 font-mono">{selectedNode.name.split(':')[0]?.trim() || 'System'}</span>
-                    </div>
-
-                    <div className="border-t border-slate-800 pt-2">
-                      <span className="text-[10px] text-slate-500 block uppercase font-mono">Description</span>
-                      <p className="text-slate-400 mt-1 leading-relaxed text-[11px]">{selectedNode.desc}</p>
-                    </div>
-
-                    <div className="border-t border-slate-800 pt-2">
-                      <span className="text-[10px] text-slate-500 block uppercase font-mono">Operational Status</span>
-                      <span className="inline-flex items-center space-x-1 mt-1 text-[10px] font-bold text-green-400 bg-green-500/10 px-2 py-0.5 rounded">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        <span>{selectedNode.status.toUpperCase()}</span>
-                      </span>
-                    </div>
-
-                    <div className="border-t border-slate-800 pt-2">
-                      <div className="flex items-center justify-between text-[10px] text-slate-500 uppercase font-mono">
-                        <span>Integration Health</span>
-                        <span className="text-cyan-400 font-bold">{selectedNode.health}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 rounded-full h-1.5 mt-1 overflow-hidden">
-                        <div 
-                          className="bg-cyan-500 h-full rounded-full transition-all duration-300"
-                          style={{ width: `${selectedNode.health}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-48 text-slate-500">
-                    <i className="fa-solid fa-hand-pointer text-lg mb-2"></i>
-                    <p className="text-center text-[10px]">Select a node in the tree to display properties.</p>
-                  </div>
-                )}
-
-                {/* Additional engineering tolerances */}
-                <div className="border-t border-slate-800 pt-3 space-y-2">
-                  <span className="text-[10px] text-slate-500 block uppercase font-bold tracking-wide">Tolerances</span>
-                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
-                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-900">
-                      <span className="text-[9px] text-slate-600 block">Thermal</span>
-                      <span className="text-slate-300">-180°C / +120°C</span>
-                    </div>
-                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-900">
-                      <span className="text-[9px] text-slate-600 block">Vibration Limit</span>
-                      <span className="text-slate-300">12.5 G RMS</span>
-                    </div>
-                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-900">
-                      <span className="text-[9px] text-slate-600 block">Payload Cap</span>
-                      <span className="text-slate-300">45.0 kg</span>
-                    </div>
-                    <div className="bg-slate-900/40 p-1.5 rounded border border-slate-900">
-                      <span className="text-[9px] text-slate-600 block">Laser Band</span>
-                      <span className="text-slate-300">1064 nm</span>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          )}
-
-        </div>
+        <PropertiesPanel 
+          selectedNode={selectedNode}
+          isCollapsed={rightCollapsed}
+          onToggleCollapse={() => setRightCollapsed(!rightCollapsed)}
+          width={rightWidth}
+          onStartResize={startResizeRight}
+        />
 
       </div>
 

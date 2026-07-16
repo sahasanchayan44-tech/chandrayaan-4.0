@@ -47,26 +47,25 @@ export default function CadTab({
           className="w-full h-full block relative cursor-grab active:cursor-grabbing z-0"
         />
 
-        {/* Viewport bottom toolbar overlay */}
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
           <div className="flex items-center space-x-1.5 bg-slate-950/80 border border-slate-800 rounded p-1">
             <button 
               onClick={() => setCadOrbit(!cadOrbit)}
-              className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadOrbit ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
+              className={`btn btn-secondary !py-1 !px-2.5 !text-[10px] flex items-center space-x-1 ${cadOrbit ? '!bg-cyan-500/20 !text-cyan-400 !border-cyan-400/30' : ''}`}
             >
               <i className="fa-solid fa-rotate"></i>
               <span>{cadOrbit ? 'ORBIT LOCK' : 'FREE ORBIT'}</span>
             </button>
             <button 
               onClick={() => setCadWireframe(!cadWireframe)}
-              className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadWireframe ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
+              className={`btn btn-secondary !py-1 !px-2.5 !text-[10px] flex items-center space-x-1 ${cadWireframe ? '!bg-cyan-500/20 !text-cyan-400 !border-cyan-400/30' : ''}`}
             >
               <i className="fa-solid fa-circle-nodes"></i>
               <span>{cadWireframe ? 'SOLID VIEW' : 'WIREFRAME'}</span>
             </button>
             <button 
               onClick={() => setCadExploded(!cadExploded)}
-              className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadExploded ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
+              className={`btn btn-secondary !py-1 !px-2.5 !text-[10px] flex items-center space-x-1 ${cadExploded ? '!bg-cyan-500/20 !text-cyan-400 !border-cyan-400/30' : ''}`}
             >
               <i className="fa-solid fa-cubes"></i>
               <span>{cadExploded ? 'COLLAPSE' : 'EXPLODE'}</span>
@@ -77,7 +76,7 @@ export default function CadTab({
             href="https://viewer.autodesk.com/" 
             target="_blank" 
             rel="noreferrer" 
-            className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-mono text-[10px] rounded transition-colors flex items-center space-x-1 cursor-pointer"
+            className="btn btn-primary !py-1 !px-2.5 !text-[10px] flex items-center space-x-1"
           >
             <i className="fa-solid fa-cube"></i>
             <span>CAD 360 VIEW</span>

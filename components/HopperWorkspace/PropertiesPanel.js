@@ -1,6 +1,4 @@
-import { useState, useEffect } from 'react';
-import { db } from '../../app/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { useState } from 'react';
 
 export default function PropertiesPanel({
   selectedNode,
@@ -16,36 +14,11 @@ export default function PropertiesPanel({
     operational: true
   });
 
-  // Ready for Firebase real-time property bindings
-  const [fbProps, setFbProps] = useState(null);
-
-  useEffect(() => {
-    if (!selectedNode) return;
-    setFbProps(null);
-
-    const rawId = selectedNode.id || selectedNode.name.split(':')[1]?.trim() || selectedNode.name;
-    const nodeId = String(rawId).toLowerCase().replace(/[^a-z0-9]/g, '-');
-
-    async function loadPropertiesFromFirebase() {
-      try {
-        const docRef = doc(db, 'component_properties', nodeId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setFbProps(docSnap.data());
-          console.log(`Loaded real-time properties for ${nodeId} from Firebase:`, docSnap.data());
-        }
-      } catch (err) {
-        console.warn(`Firestore property query deferred for ${nodeId}:`, err.message);
-      }
-    }
-    loadPropertiesFromFirebase();
-  }, [selectedNode]);
-
   // Generate realistic specs based on node name/ID
   const getSpecs = () => {
     if (!selectedNode) return null;
     
-    const data = fbProps || {};
+    const data = {};
     const rawId = selectedNode.id || selectedNode.name.split(':')[1]?.trim() || selectedNode.name;
     const nodeId = String(rawId).toLowerCase().replace(/[^a-z0-9]/g, '-');
 

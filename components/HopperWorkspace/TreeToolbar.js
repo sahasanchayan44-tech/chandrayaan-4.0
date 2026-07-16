@@ -7,7 +7,7 @@ export default function TreeToolbar({ onExpandAll, onCollapseAll, itemCount }) {
       <div className="flex items-center space-x-1.5 font-mono">
         <button 
           onClick={onExpandAll} 
-          className="p-1 hover:text-cyan-400 cursor-pointer flex items-center space-x-1 text-[10px] bg-slate-950/20 rounded border border-slate-800/40" 
+          className="btn btn-secondary !py-0.5 !px-2 !text-[9px] flex items-center space-x-1" 
           title="Expand All Nodes"
         >
           <i className="fa-solid fa-folder-open text-yellow-500/80"></i>
@@ -15,7 +15,7 @@ export default function TreeToolbar({ onExpandAll, onCollapseAll, itemCount }) {
         </button>
         <button 
           onClick={onCollapseAll} 
-          className="p-1 hover:text-cyan-400 cursor-pointer flex items-center space-x-1 text-[10px] bg-slate-950/20 rounded border border-slate-800/40" 
+          className="btn btn-secondary !py-0.5 !px-2 !text-[9px] flex items-center space-x-1" 
           title="Collapse All Nodes"
         >
           <i className="fa-solid fa-folder text-slate-500"></i>

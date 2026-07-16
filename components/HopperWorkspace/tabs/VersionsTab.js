@@ -86,7 +86,7 @@ export default function VersionsTab({
         </div>
         <button
           onClick={() => setIsCompareMode(!isCompareMode)}
-          className={`px-3 py-1.5 rounded text-[10px] font-bold transition-colors cursor-pointer flex items-center space-x-1.5 ${isCompareMode ? 'bg-cyan-600 hover:bg-cyan-500 text-white' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'}`}
+          className={`btn !py-1.5 !px-3 !text-[10px] flex items-center space-x-1.5 ${isCompareMode ? 'btn-primary' : 'btn-secondary'}`}
         >
           <i className="fa-solid fa-code-compare"></i>
           <span>{isCompareMode ? 'CLOSE COMPARISON' : 'COMPARE VERSIONS'}</span>
@@ -101,7 +101,7 @@ export default function VersionsTab({
             <select
               value={compareA}
               onChange={(e) => setCompareA(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200"
+              className="bg-black/40 border border-white/5 rounded-lg px-2 py-1 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(0,242,254,0.12)] transition-all"
             >
               {versions.map(v => (
                 <option key={v.id} value={v.id}>{v.id} - {v.message.substring(0, 30)}...</option>
@@ -111,7 +111,7 @@ export default function VersionsTab({
             <select
               value={compareB}
               onChange={(e) => setCompareB(e.target.value)}
-              className="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-200"
+              className="bg-black/40 border border-white/5 rounded-lg px-2 py-1 text-slate-200 text-xs font-mono focus:outline-none focus:border-cyan-400 focus:shadow-[0_0_15px_rgba(0,242,254,0.12)] transition-all"
             >
               {versions.map(v => (
                 <option key={v.id} value={v.id}>{v.id} - {v.message.substring(0, 30)}...</option>
@@ -189,7 +189,7 @@ export default function VersionsTab({
                   <button
                     disabled={isActive}
                     onClick={() => onRollback(ver)}
-                    className={`w-full py-1.5 rounded text-[9px] font-bold transition-colors cursor-pointer ${isActive ? 'bg-slate-900 text-slate-600 cursor-not-allowed border border-slate-800/40' : 'bg-cyan-600/20 hover:bg-cyan-600 text-cyan-400 hover:text-white border border-cyan-500/30'}`}
+                    className={`btn w-full !py-1 !px-2 !text-[9px] ${isActive ? 'btn-secondary !text-slate-600 cursor-not-allowed opacity-50' : 'btn-primary'}`}
                   >
                     ROLLBACK ASSEMBLY
                   </button>

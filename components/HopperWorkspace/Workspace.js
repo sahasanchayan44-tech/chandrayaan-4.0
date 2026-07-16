@@ -320,22 +320,19 @@ export default function HopperWorkspace({
     <div className="flex flex-col h-full w-full bg-slate-950/20 text-slate-200 border border-cyan-500/20 rounded-lg overflow-hidden">
       {/* breadcrumbs header */}
       <div className="flex items-center justify-between px-4 py-2 bg-slate-900/60 border-b border-cyan-500/20 text-xs tracking-wider">
-        <div className="flex items-center space-x-2 text-cyan-400">
-          <i className="fa-solid fa-microchip"></i>
-          <span>CHANDRAYAAN_4</span>
-          <span className="text-slate-500">/</span>
-          <span>HOPPER_IDE</span>
-          <span className="text-slate-500">/</span>
-          <span className="text-slate-300 font-bold uppercase">{breadcrumbText || `${currentDesign.id.toUpperCase()} DESIGN`}</span>
+        <div className="flex items-center space-x-2 text-cyan-400 font-mono font-bold">
+          <i className="fa-solid fa-sitemap text-cyan-400/80"></i>
+          <span>EXPLORER:</span>
+          <span className="text-slate-200 font-normal uppercase">{breadcrumbText || `${currentDesign.id.toUpperCase()} DESIGN`}</span>
         </div>
         <div className="flex items-center space-x-3 text-slate-400">
           <span className="flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
             <span className="text-[10px] text-green-400 font-mono">DOCK STATE: LOCKED</span>
           </span>
           <button 
             onClick={() => setIsBottomDocked(!isBottomDocked)}
-            className="hover:text-cyan-400 transition-colors cursor-pointer"
+            className="btn btn-icon hover:text-cyan-400 transition-colors cursor-pointer !p-1"
             title="Toggle Bottom Panel Placement"
           >
             <i className={`fa-solid ${isBottomDocked ? 'fa-window-maximize' : 'fa-window-restore'}`}></i>
@@ -353,7 +350,7 @@ export default function HopperWorkspace({
         >
           {leftCollapsed ? (
             <div className="flex flex-col items-center py-4 space-y-6 text-slate-400">
-              <button onClick={() => setLeftCollapsed(false)} className="hover:text-cyan-400 cursor-pointer">
+              <button onClick={() => setLeftCollapsed(false)} className="btn btn-icon hover:text-cyan-400 cursor-pointer">
                 <i className="fa-solid fa-angles-right"></i>
               </button>
               <i className="fa-solid fa-sitemap" title="Component Tree"></i>
@@ -378,12 +375,12 @@ export default function HopperWorkspace({
         <div className="flex-1 flex flex-col min-w-0 bg-slate-950/20">
           
           {/* Horizontal View Tab Bar */}
-          <div className="flex items-center overflow-x-auto whitespace-nowrap bg-slate-900/60 border-b border-cyan-500/10 px-2 py-1 scrollbar-none shrink-0 select-none">
+          <div className="hopper-tabs border-b border-cyan-500/10 flex whitespace-nowrap overflow-x-auto w-full px-2 py-1 gap-1.5 scrollbar-none shrink-0 select-none bg-slate-900/60">
             {workspaceTabs.map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveWorkspaceTab(tab.id)}
-                className={`px-3 py-1.5 text-[10px] font-mono hover:text-cyan-400 cursor-pointer transition-colors border-b-2 font-bold ${activeWorkspaceTab === tab.id ? 'border-cyan-400 text-cyan-300 bg-slate-950/20' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+                className={`hopper-tab-btn !flex-none !py-1.5 !px-3.5 !text-[10px] ${activeWorkspaceTab === tab.id ? 'active font-bold' : ''}`}
               >
                 {tab.label.toUpperCase()}
               </button>

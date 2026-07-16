@@ -35,7 +35,7 @@ export default function SimulationTab({
         <div className="flex items-center space-x-2">
           <button 
             onClick={togglePlay}
-            className={`px-3 py-1.5 rounded text-[10px] font-bold transition-colors cursor-pointer flex items-center space-x-1.5 ${simStatus === 'running' ? 'bg-amber-600 hover:bg-amber-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}
+            className={`btn !py-1.5 !px-3 !text-[10px] flex items-center space-x-1.5 ${simStatus === 'running' ? 'btn-secondary !text-amber-400 !border-amber-500/30' : 'btn-primary'}`}
           >
             <i className={`fa-solid ${simStatus === 'running' ? 'fa-pause' : 'fa-play'}`}></i>
             <span>{simStatus === 'running' ? 'PAUSE' : 'PLAY'}</span>
@@ -43,7 +43,7 @@ export default function SimulationTab({
           
           <button 
             onClick={resetSimulation}
-            className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded text-[10px] font-bold text-slate-300 transition-colors cursor-pointer flex items-center space-x-1.5"
+            className="btn btn-secondary !py-1.5 !px-3 !text-[10px] flex items-center space-x-1.5"
             title="Reset Simulation"
           >
             <i className="fa-solid fa-rotate-left"></i>
@@ -80,7 +80,7 @@ export default function SimulationTab({
             <button
               key={multiplier}
               onClick={() => setSimSpeed(multiplier)}
-              className={`px-2 py-1 text-[9px] font-bold rounded transition-colors cursor-pointer ${simSpeed === multiplier ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
+              className={`btn btn-secondary !py-0.5 !px-1.5 !text-[9px] ${simSpeed === multiplier ? '!bg-cyan-500/20 !text-cyan-400 !border-cyan-400/30' : ''}`}
             >
               {multiplier}x
             </button>

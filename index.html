@@ -143,17 +143,45 @@
           </div>
         </div>
 
-        <!-- Mission Specifications -->
-        <div class="glass-card" id="card-specs">
+        <!-- Mission Briefings Slideshow -->
+        <div class="glass-card" id="card-briefings">
           <div class="card-header">
-            <h2 class="card-title"><i class="fa-solid fa-circle-info header-icon"></i> MISSION OVERVIEW</h2>
+            <h2 class="card-title"><i class="fa-solid fa-person-chalkboard header-icon"></i> MISSION BRIEFINGS & VISUALS</h2>
+            <div class="slider-controls">
+              <button class="btn-icon btn-small" id="btn-slide-prev" title="Previous Slide"><i class="fa-solid fa-chevron-left"></i></button>
+              <button class="btn-icon btn-small" id="btn-slide-next" title="Next Slide"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
           </div>
-          <div class="overview-content">
-            <p><strong>Chandrayaan 4.0</strong> focuses on localized mapping, ice detection, and dynamic path navigation in the Shackleton Crater region. The data hub below consolidates scientific papers, reports, budgets, and landing site workflow guides.</p>
-            <div class="spec-list">
-              <div class="spec-pill"><i class="fa-solid fa-database"></i> 15 Data Sources</div>
-              <div class="spec-pill"><i class="fa-solid fa-server"></i> 24/7 Availability</div>
-              <div class="spec-pill"><i class="fa-solid fa-shield-halved"></i> Sync Secure</div>
+          <div class="slider-container">
+            <div class="slides-wrapper" id="slides-wrapper">
+              
+              <!-- Slide 0: Rover Schematic -->
+              <div class="slide active" data-slide="0">
+                <img src="images/rover_schematic.jpg" alt="Indian Lunar Rover Schematic" class="slide-img">
+                <div class="slide-caption">
+                  <h3>Pragyan 4.0 Schematic Blueprint</h3>
+                  <p>Futuristic technical schematic of the Indian lunar rover including LIBS spectrometer, robotic arm, and solar cell configuration.</p>
+                </div>
+              </div>
+
+              <!-- Slide 1: Water Ice Map -->
+              <div class="slide" data-slide="1">
+                <img src="images/crater_water_map.jpg" alt="Shackleton Crater Water Ice Map" class="slide-img">
+                <div class="slide-caption">
+                  <h3>Shackleton Crater Water Distribution</h3>
+                  <p>Thermal and spectroscopic scan showing water ice concentration deposits (green/blue signatures) in shadowed lunar craters.</p>
+                </div>
+              </div>
+
+              <!-- Slide 2: Landing Workflow -->
+              <div class="slide" data-slide="2">
+                <img src="images/landing_workflow.jpg" alt="Lunar Landing Site Workflow" class="slide-img">
+                <div class="slide-caption">
+                  <h3>Touchdown Site Workflow Protocol</h3>
+                  <p>Strategic stages: Orbital Scanning, Slope Gradients (&lt;10° threshold), Solar Illumination, and Touchdown Lock.</p>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>

@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import LineChart from './LineChart';
 
-export default function PropulsionTab() {
+export default function PropulsionTab({ isActive }) {
   const [fuel, setFuel] = useState(82.4);
   const [thrustData, setThrustData] = useState([590, 602, 595, 608, 600, 612, 597, 605, 599, 601]);
 
   // Simulate slow fuel burn & thrust output fluctuations
   useEffect(() => {
+    if (!isActive) return;
     const interval = setInterval(() => {
       setFuel(prev => Math.max(0, prev - 0.005));
 
@@ -20,7 +21,7 @@ export default function PropulsionTab() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isActive]);
 
   return (
     <div className="p-3 font-mono text-xs text-slate-300 space-y-4 h-full overflow-y-auto">

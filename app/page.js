@@ -1035,8 +1035,14 @@ export default function Dashboard() {
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          const w = canvas.width = canvas.parentElement.clientWidth || 300;
-          const h = canvas.height = canvas.parentElement.clientHeight || 300;
+          const parentW = canvas.parentElement?.clientWidth || 300;
+          const parentH = canvas.parentElement?.clientHeight || 300;
+          if (canvas.width !== parentW || canvas.height !== parentH) {
+            canvas.width = parentW;
+            canvas.height = parentH;
+          }
+          const w = canvas.width;
+          const h = canvas.height;
           ctx.clearRect(0, 0, w, h);
 
           // Projected vertices

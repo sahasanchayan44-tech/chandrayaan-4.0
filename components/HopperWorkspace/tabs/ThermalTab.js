@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import LineChart from './LineChart';
 
-export default function ThermalTab() {
+export default function ThermalTab({ isActive }) {
   const [temps, setTemps] = useState({
     combustion: 350.2,
     fuelTank: 18.5,
@@ -13,6 +13,7 @@ export default function ThermalTab() {
 
   // Simulate temperature fluctuations
   useEffect(() => {
+    if (!isActive) return;
     const interval = setInterval(() => {
       setTemps(prev => ({
         combustion: Math.max(340, Math.min(365, prev.combustion + (Math.random() - 0.5) * 3)),
@@ -23,7 +24,7 @@ export default function ThermalTab() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isActive]);
 
   // Update history based on combustion temp updates
   useEffect(() => {

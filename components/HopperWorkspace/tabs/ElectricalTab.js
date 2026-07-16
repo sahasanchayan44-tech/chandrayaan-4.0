@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import LineChart from './LineChart';
 
-export default function ElectricalTab() {
+export default function ElectricalTab({ isActive }) {
   const [batteryCharge, setBatteryCharge] = useState(94.2);
   const [voltageHistory, setVoltageHistory] = useState([28.1, 28.2, 28.1, 28.3, 28.2, 28.1, 28.2, 28.3, 28.1, 28.2]);
 
   // Simulate dynamic power consumption
   useEffect(() => {
+    if (!isActive) return;
     const interval = setInterval(() => {
       // Slowly fluctuate battery charge based on solar intake (+0.002) vs computer consumption (-0.001)
       setBatteryCharge(prev => Math.max(0, Math.min(100, prev + 0.001)));
@@ -22,7 +23,7 @@ export default function ElectricalTab() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isActive]);
 
   return (
     <div className="p-3 font-mono text-xs text-slate-300 space-y-4 h-full overflow-y-auto">

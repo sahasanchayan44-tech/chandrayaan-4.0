@@ -431,27 +431,27 @@ export default function HopperWorkspace({
 
               {/* 4. Structure */}
               <div className={activeWorkspaceTab === 'structure' ? 'w-full h-full block' : 'hidden'}>
-                <StructureTab />
+                <StructureTab isActive={activeWorkspaceTab === 'structure'} />
               </div>
-
+ 
               {/* 5. Propulsion */}
               <div className={activeWorkspaceTab === 'propulsion' ? 'w-full h-full block' : 'hidden'}>
-                <PropulsionTab />
+                <PropulsionTab isActive={activeWorkspaceTab === 'propulsion'} />
               </div>
-
+ 
               {/* 6. Electrical */}
               <div className={activeWorkspaceTab === 'electrical' ? 'w-full h-full block' : 'hidden'}>
-                <ElectricalTab />
+                <ElectricalTab isActive={activeWorkspaceTab === 'electrical'} />
               </div>
-
+ 
               {/* 7. Navigation */}
               <div className={activeWorkspaceTab === 'navigation' ? 'w-full h-full block' : 'hidden'}>
                 <NavigationTab />
               </div>
-
+ 
               {/* 8. Thermal */}
               <div className={activeWorkspaceTab === 'thermal' ? 'w-full h-full block' : 'hidden'}>
-                <ThermalTab />
+                <ThermalTab isActive={activeWorkspaceTab === 'thermal'} />
               </div>
 
               {/* Version Control PDM */}

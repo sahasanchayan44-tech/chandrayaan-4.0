@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import LineChart from './LineChart';
 
-export default function StructureTab() {
+export default function StructureTab({ isActive }) {
   const [stressData, setStressData] = useState([240, 241, 238, 243, 242, 239, 241, 240, 242, 243]);
   const [cog, setCog] = useState({ x: 0.02, y: -0.01, z: 0.45 });
 
   // Simulate structural stress vibration noise
   useEffect(() => {
+    if (!isActive) return;
     const interval = setInterval(() => {
       setStressData(prev => {
         const next = [...prev.slice(1)];
@@ -24,7 +25,7 @@ export default function StructureTab() {
     }, 1200);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isActive]);
 
   return (
     <div className="p-3 font-mono text-xs text-slate-300 space-y-4 h-full overflow-y-auto">

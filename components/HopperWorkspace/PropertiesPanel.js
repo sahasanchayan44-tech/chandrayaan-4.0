@@ -43,7 +43,8 @@ export default function PropertiesPanel({
     if (!selectedNode) return null;
     
     const data = fbProps || {};
-    const nodeId = selectedNode.id;
+    const rawId = selectedNode.id || selectedNode.name.split(':')[1]?.trim() || selectedNode.name;
+    const nodeId = String(rawId).toLowerCase().replace(/[^a-z0-9]/g, '-');
 
     const defaults = {
       uuid: data.uuid || `CY4-${nodeId.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,

@@ -1,5 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;600;800;900&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+
 /* ==========================================================================
-   CHANDRAYAAN 4.0 - DESIGN SYSTEM & STYLES
+   CHANDRAYAAN 4.0 - DESIGN SYSTEM & STYLES (NEXT.JS VERSION)
    ========================================================================== */
 
 /* Custom CSS Variables */
@@ -253,7 +256,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-width: 0; /* Prevents flex items breaking layout */
+  min-width: 0;
 }
 
 /* ==========================================================================
@@ -581,7 +584,6 @@ body {
   flex: 1;
 }
 
-/* Search bar styling inside Card Header */
 .search-bar-container {
   position: relative;
   display: flex;
@@ -623,7 +625,6 @@ body {
   flex-direction: column;
 }
 
-/* List states */
 .loading-state, .empty-state {
   display: flex;
   flex-direction: column;
@@ -646,7 +647,6 @@ body {
   color: #334155;
 }
 
-/* File list item row */
 .file-item {
   display: flex;
   align-items: center;
@@ -689,7 +689,6 @@ body {
   color: var(--color-primary);
 }
 
-/* Colored file icon styles depending on extensions */
 .file-pdf { color: #ff4a5a; }
 .file-image { color: #00ffaa; }
 .file-archive { color: #ffb700; }
@@ -721,14 +720,12 @@ body {
   margin-top: 0.1rem;
 }
 
-/* File Actions Panel */
 .file-actions {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-/* Files Footer */
 .files-footer {
   padding: 0.85rem 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
@@ -1302,5 +1299,3 @@ body {
   display: flex;
   gap: 0.4rem;
 }
-
-

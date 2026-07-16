@@ -292,7 +292,7 @@ export default function Dashboard() {
   const roverPosRef = useRef({ ...checkpoints[0] });
   const isSimulatingRef = useRef(false);
   const animationFrameIdRef = useRef(null);
-  const consoleEndRef = useRef(null);
+  const consoleContainerRef = useRef(null);
 
   // --- LOGGING HELPER ---
   const writeLog = useCallback((message, isError = false) => {
@@ -1363,10 +1363,10 @@ export default function Dashboard() {
     return () => clearInterval(logInterval);
   }, [authorized]);
 
-  // Auto scroll console logs
+  // Auto scroll console logs container local scroll position
   useEffect(() => {
-    if (consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (consoleContainerRef.current) {
+      consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
     }
   }, [autonavLogs]);
 
@@ -1602,7 +1602,7 @@ export default function Dashboard() {
 
                 {/* Autonav Diagnostic Console */}
                 <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                  <div className="terminal-console">
+                  <div ref={consoleContainerRef} className="terminal-console">
                     {autonavLogs.map((log, idx) => (
                       <div className={`console-line ${log.type}`} key={idx}>
                         <span className="time">[{log.time}]</span>
@@ -1610,7 +1610,6 @@ export default function Dashboard() {
                         <span>{log.text}</span>
                       </div>
                     ))}
-                    <div ref={consoleEndRef} />
                   </div>
                 </div>
               </div>

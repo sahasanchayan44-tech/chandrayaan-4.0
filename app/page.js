@@ -21,6 +21,15 @@ const checkpoints = [
   { name: 'Lunar Hopper (Deploy Zone)', x: 500, y: 110, color: 'var(--color-accent)' },
 ];
 
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
 export default function Dashboard() {
   // --- STATE ---
   const [authorized, setAuthorized] = useState(false);
@@ -60,7 +69,7 @@ export default function Dashboard() {
   // Slideshow
   const [activeSlide, setActiveSlide] = useState(0);
 
-  // Telemetry values
+  // Rover Telemetry values
   const [telemetry, setTelemetry] = useState({
     latLong: '89.9000°S, 0.0000°E',
     battery: 98,
@@ -68,6 +77,31 @@ export default function Dashboard() {
     water: 4.82,
     connectivity: 'CONNECTIVITY: 99.4%'
   });
+
+  // Lander Telemetry values
+  const [landerTelemetry, setLanderTelemetry] = useState({
+    altitude: 4.25, // km
+    velocity: 14.8, // m/s
+    fuel: 84.6, // %
+    mainEngine: 'Active (38% Thrust)'
+  });
+
+  // Scientific Payloads
+  const [payloads, setPayloads] = useState([
+    { name: 'LIBS (Laser Spectroscopy)', status: 'scanning', info: 'Laser scanning regolith' },
+    { name: 'APXS (X-Ray Spectrometer)', status: 'idle', info: 'Calibration cycle complete' },
+    { name: 'ChaSTE (Thermal Probe)', status: 'active', info: 'Depth temperature profile log' },
+    { name: 'ILSA (Seismology Array)', status: 'active', info: 'Monitoring seismic triggers' }
+  ]);
+
+  // Autonav Diagnostic Logs
+  const [autonavLogs, setAutonavLogs] = useState([
+    { time: '15:16:01', tag: 'AUTONAV', text: 'AutoNav system online. Radar sensor scanning crater rim...', type: 'info' },
+    { time: '15:16:05', tag: 'TELESCOPE', text: 'ChaSTE temperature probe: Thermal model derived.', type: 'success' },
+    { time: '15:16:10', tag: 'AUTONAV', text: 'Hazard identified at [x: 18.4m, y: 12.1m]: Slope gradient 14.2° (>10° limit).', type: 'alert' },
+    { time: '15:16:13', tag: 'AUTONAV', text: 'Autonav: Recalculating local detour trajectory.', type: 'info' },
+    { time: '15:16:16', tag: 'AUTONAV', text: 'Detour path locked. Signal latency: 1.25 seconds.', type: 'success' }
+  ]);
 
   // System logs
   const [logText, setLogText] = useState('System initialized. Awaiting user telemetry inputs...');
@@ -80,6 +114,7 @@ export default function Dashboard() {
   const roverPosRef = useRef({ ...checkpoints[0] });
   const isSimulatingRef = useRef(false);
   const animationFrameIdRef = useRef(null);
+  const consoleEndRef = useRef(null);
 
   // --- LOGGING HELPER ---
   const writeLog = useCallback((message, isError = false) => {
@@ -165,8 +200,8 @@ export default function Dashboard() {
     
     setCurrentMode(computedMode);
     writeLog(computedMode === 'local' 
-      ? 'Switched to Local mode. Interfacing with Next.js dynamic Route Handler APIs.'
-      : `Switched to Cloud mode. Interfacing with GitHub Repo: ${username}/${repo}`
+      ? 'Switched to Local mode. Interfacing with Next.js Route Handlers.'
+      : `Switched to Cloud mode. Fetching repository data from GitHub: ${username}/${repo}`
     );
   }, [writeLog]);
 
@@ -181,13 +216,14 @@ export default function Dashboard() {
         const data = await response.json();
         setFiles(data);
       } else {
-        const url = `https://api.github.com/repos/${username}/${repo}/contents/chandrayaan`;
+        // Query the gh-pages branch directly so dynamic uploads are visible instantly!
+        const url = `https://api.github.com/repos/${username}/${repo}/contents/chandrayaan?ref=gh-pages`;
         const headers = {};
         if (token) headers['Authorization'] = `token ${token}`;
         
         const response = await fetch(url, { headers });
         if (response.status === 404) {
-          writeLog('GitHub directory "chandrayaan" not found. Ready for first file commit.', true);
+          writeLog('GitHub directory "chandrayaan" not found in gh-pages. Ready for first file commit.', true);
           setFiles([]);
         } else if (!response.ok) {
           throw new Error(`GitHub Error: HTTP ${response.status}`);
@@ -214,7 +250,7 @@ export default function Dashboard() {
     }
   }, [writeLog]);
 
-  // Upload file
+  // Upload file (with client-side browser encryption)
   async function uploadFile(file) {
     setIsUploading(true);
     setUploadingFilename(`Encrypting: ${file.name}`);
@@ -272,9 +308,11 @@ export default function Dashboard() {
                 const existingFile = files.find(f => f.name === encFilename);
                 if (existingFile) sha = existingFile.sha;
 
+                // Explicitly commit directly to the gh-pages branch
                 const payload = {
                   message: `Upload secure asset ${encFilename} via Next.js Dashboard`,
-                  content: base64Data
+                  content: base64Data,
+                  branch: 'gh-pages'
                 };
                 if (sha) payload.sha = sha;
 
@@ -294,7 +332,7 @@ export default function Dashboard() {
                 }
 
                 setUploadProgress(100);
-                writeLog(`Successfully uploaded encrypted ${file.name} to GitHub cloud.`);
+                writeLog(`Successfully uploaded encrypted ${file.name} to GitHub cloud (gh-pages).`);
                 setTimeout(() => {
                   setIsUploading(false);
                   loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken);
@@ -371,9 +409,12 @@ export default function Dashboard() {
       } else {
         if (!settings.ghToken) throw new Error('GitHub API Token required.');
         const url = `https://api.github.com/repos/${settings.ghUsername}/${settings.ghRepo}/contents/chandrayaan/${encodeURIComponent(filename)}`;
+        
+        // Delete directly from the gh-pages branch
         const payload = {
           message: `Delete secure file ${filename} via Next.js Dashboard`,
-          sha: sha
+          sha: sha,
+          branch: 'gh-pages'
         };
 
         const response = await fetch(url, {
@@ -444,7 +485,7 @@ export default function Dashboard() {
     }
   }
 
-  // Helper helper
+  // Helpers
   function getFileIconClass(filename) {
     const cleanName = filename.endsWith('.enc') ? filename.slice(0, -4) : filename;
     const ext = cleanName.split('.').pop().toLowerCase();
@@ -666,7 +707,7 @@ export default function Dashboard() {
         roverPosRef.current = { ...checkpoints[checkpoints.length - 1] };
         isSimulatingRef.current = false;
         if (mapPathStatusRef.current) mapPathStatusRef.current.textContent = 'Completed Traverse';
-        writeLog('Rover reached terminal checkpoint: Deploy Zone. Ice spectrometer scan locked.');
+        writeLog('Rover reached terminal checkpoint: Deploy Zone. spectrometer scan locked.');
         drawMap();
         return;
       }
@@ -696,20 +737,18 @@ export default function Dashboard() {
     roverPosRef.current = { ...checkpoints[0] };
     if (mapPathStatusRef.current) mapPathStatusRef.current.textContent = 'Ready for simulation';
     setTelemetry(prev => ({ ...prev, latLong: '89.9000°S, 0.0000°E' }));
-    writeLog('Rover coordinates reset to default Lander Zone (Shackleton).');
+    writeLog('Rover coordinates reset to default Lander Zone.');
     drawMap();
   }
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    // Check session auth on load
     const authStatus = sessionStorage.getItem('cy4_authorized') === 'true';
     const pass = sessionStorage.getItem('cy4_passcode');
     if (authStatus && pass) {
       setAuthorized(true);
     }
 
-    // Interval clocks
     const clockInterval = setInterval(() => {
       const now = new Date();
       setSystemTime(now.toISOString().replace('T', ' ').substring(0, 19) + ' UTC');
@@ -722,7 +761,6 @@ export default function Dashboard() {
   useEffect(() => {
     if (!authorized) return;
 
-    // Load credentials from local Route Handler
     async function loadLocalConfig() {
       const host = window.location.hostname;
       if (host === 'localhost' || host === '127.0.0.1' || host === '') {
@@ -746,7 +784,7 @@ export default function Dashboard() {
             );
           }
         } catch (e) {
-          console.warn('Failed local config fetch, using localStorage:', e);
+          console.warn('Failed local config fetch:', e);
         }
       } else {
         const loaded = {
@@ -767,14 +805,10 @@ export default function Dashboard() {
     }
 
     loadLocalConfig();
-    startTelemetrySimulation();
-
-    // Map drawing setup
     initMapCanvas();
     const handleResize = () => initMapCanvas();
     window.addEventListener('resize', handleResize);
 
-    // Auto slideshow timer
     const slideTimer = setInterval(() => {
       setActiveSlide(prev => (prev + 1) % 3);
     }, 7000);
@@ -785,7 +819,7 @@ export default function Dashboard() {
     };
   }, [authorized, determineMode, loadFilesList, initMapCanvas]);
 
-  // Telemetry fluctuation
+  // Telemetry fluctuation (Rover)
   useEffect(() => {
     if (!authorized) return;
     const telemetryInterval = setInterval(() => {
@@ -806,6 +840,101 @@ export default function Dashboard() {
     return () => clearInterval(telemetryInterval);
   }, [authorized]);
 
+  // Lander Descent Simulator
+  useEffect(() => {
+    if (!authorized) return;
+    const landerInterval = setInterval(() => {
+      setLanderTelemetry(prev => {
+        const nextAlt = Math.max(0, parseFloat((prev.altitude - 0.02).toFixed(3)));
+        const nextVel = nextAlt === 0 ? 0 : parseFloat(Math.max(1, Math.min(25, prev.velocity + (Math.random() * 0.8 - 0.4))).toFixed(1));
+        const nextFuel = Math.max(0, parseFloat((prev.fuel - 0.05).toFixed(2)));
+        const nextEngine = nextAlt === 0 ? 'Shut Down' : `Active (${Math.floor(35 + Math.random() * 10)}% Thrust)`;
+        return {
+          altitude: nextAlt,
+          velocity: nextVel,
+          fuel: nextFuel,
+          mainEngine: nextEngine
+        };
+      });
+    }, 3000);
+
+    return () => clearInterval(landerInterval);
+  }, [authorized]);
+
+  // Scientific Payloads Simulator
+  useEffect(() => {
+    if (!authorized) return;
+    const payloadInterval = setInterval(() => {
+      setPayloads(prev => {
+        return prev.map(p => {
+          if (p.name.startsWith('LIBS')) {
+            return { ...p, status: Math.random() > 0.4 ? 'scanning' : 'idle' };
+          }
+          if (p.name.startsWith('APXS')) {
+            return { ...p, status: Math.random() > 0.7 ? 'scanning' : 'idle' };
+          }
+          return p;
+        });
+      });
+    }, 8500);
+    return () => clearInterval(payloadInterval);
+  }, [authorized]);
+
+  // Autonav log simulation
+  useEffect(() => {
+    if (!authorized) return;
+    const logInterval = setInterval(() => {
+      const tags = ['AUTONAV', 'SPECTROSCOPY', 'TELEMETRY', 'POWER', 'CHA-STE'];
+      const tag = tags[Math.floor(Math.random() * tags.length)];
+      let text = '';
+      let type = 'info';
+      
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0];
+
+      if (tag === 'AUTONAV') {
+        const detours = [
+          'Path planning updated. Clear zone found ahead.',
+          'Scanning local topography. Rough terrain detected.',
+          'Detour check completed. Continuous drive enabled.',
+          'Autonav tracking active. Heading angle: 218.4°.'
+        ];
+        text = detours[Math.floor(Math.random() * detours.length)];
+      } else if (tag === 'SPECTROSCOPY') {
+        const minerals = [
+          'Spectrometer: Soil sample contains 2.1% Titanium Dioxide.',
+          'Spectrometer: Ice water absorption feature detected at 3.0µm.',
+          'Spectrometer: Lunar regolith sample density: 1.54 g/cm³.',
+          'Spectrometer: Helium-3 traces observed in shadow trap.'
+        ];
+        text = minerals[Math.floor(Math.random() * minerals.length)];
+        type = text.includes('water') ? 'success' : 'info';
+      } else if (tag === 'TELEMETRY') {
+        text = `Transmitting telemetry packet. RSSI: -84dBm. Bit error rate: 10^-6.`;
+      } else if (tag === 'POWER') {
+        text = `Solar panels generating 114W power. Charging battery cells.`;
+        type = 'success';
+      } else {
+        text = `ChaSTE: Deep core thermal gradient measured at -112°C.`;
+      }
+
+      setAutonavLogs(prev => {
+        const nextLogs = [...prev, { time: timeStr, tag, text, type }];
+        if (nextLogs.length > 20) nextLogs.shift();
+        return nextLogs;
+      });
+    }, 6000);
+
+    return () => clearInterval(logInterval);
+  }, [authorized]);
+
+  // Auto scroll console logs
+  useEffect(() => {
+    if (consoleEndRef.current) {
+      consoleEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [autonavLogs]);
+
   // Drag & drop logic
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -824,7 +953,11 @@ export default function Dashboard() {
     }
   };
 
-  // --- PREVENT UNAUTHORIZED RENDERS ---
+  const handleFilesSelection = (filesList) => {
+    if (filesList.length === 0) return;
+    Array.from(filesList).forEach(file => uploadFile(file));
+  };
+
   if (!authorized) {
     return (
       <>
@@ -916,36 +1049,71 @@ export default function Dashboard() {
         <main className="dashboard-grid">
           {/* Left Column */}
           <section className="dashboard-col col-left">
-            {/* Telemetry Card */}
+            {/* Side-by-side Telemetry Dashboard */}
             <div className="glass-card">
               <div className="card-header">
                 <h2 className="card-title">
-                  <i className="fa-solid fa-chart-line header-icon"></i> TELEMETRY MODULE
+                  <i className="fa-solid fa-chart-line header-icon"></i> DUAL TELEMETRY MODULE
                 </h2>
                 <span className="badge">{telemetry.connectivity}</span>
               </div>
-              <div className="telemetry-grid">
-                <div className="telemetry-item">
-                  <span className="telemetry-label">LANDING ZONE</span>
-                  <span className="telemetry-value">{telemetry.latLong}</span>
-                  <span className="telemetry-sub">Lunar South Pole</span>
-                </div>
-                <div className="telemetry-item">
-                  <span className="telemetry-label">ROVER BATTERY</span>
-                  <span className="telemetry-value">{telemetry.battery}%</span>
-                  <div className="battery-bar-container">
-                    <div className="battery-bar" style={{ width: `${telemetry.battery}%` }}></div>
+              <div className="panel-row">
+                {/* Rover Status */}
+                <div className="telemetry-grid">
+                  <div className="telemetry-item" style={{ gridColumn: 'span 2', background: 'rgba(0, 242, 254, 0.02)', borderBottom: '1px solid rgba(0, 242, 254, 0.1)' }}>
+                    <span className="telemetry-label" style={{ color: 'var(--color-primary)' }}><i className="fa-solid fa-robot"></i> PRAGYAN 4.0 ROVER Telemetry</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">ROVER LAT/LONG</span>
+                    <span className="telemetry-value">{telemetry.latLong}</span>
+                    <span className="telemetry-sub">Shackleton Crater Zone</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">ROVER BATTERY</span>
+                    <span className="telemetry-value">{telemetry.battery}%</span>
+                    <div className="battery-bar-container">
+                      <div className="battery-bar" style={{ width: `${telemetry.battery}%` }}></div>
+                    </div>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">SOLAR TEMP</span>
+                    <span className="telemetry-value">{telemetry.temp}°C</span>
+                    <span className="telemetry-sub">Optimal Range</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">WATER INDEX</span>
+                    <span className="telemetry-value">{telemetry.water.toFixed(2)}%</span>
+                    <span className="telemetry-sub">Spectrometer Active</span>
                   </div>
                 </div>
-                <div className="telemetry-item">
-                  <span className="telemetry-label">SOLAR TEMP</span>
-                  <span className="telemetry-value">{telemetry.temp}°C</span>
-                  <span className="telemetry-sub">Optimal Range</span>
-                </div>
-                <div className="telemetry-item">
-                  <span className="telemetry-label">WATER INDEX</span>
-                  <span className="telemetry-value">{telemetry.water.toFixed(2)}%</span>
-                  <span className="telemetry-sub">Spectrometer Active</span>
+
+                {/* Lander descent status */}
+                <div className="telemetry-grid" style={{ borderLeft: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                  <div className="telemetry-item" style={{ gridColumn: 'span 2', background: 'rgba(185, 39, 252, 0.02)', borderBottom: '1px solid rgba(185, 39, 252, 0.1)' }}>
+                    <span className="telemetry-label" style={{ color: 'var(--color-accent)' }}><i className="fa-solid fa-circle-down"></i> VIKRAM 4.0 LANDER Telemetry</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">DESCENT ALTITUDE</span>
+                    <span className="telemetry-value" style={{ color: 'var(--color-warning)' }}>{landerTelemetry.altitude} km</span>
+                    <span className="telemetry-sub">Descent path active</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">LANDING VELOCITY</span>
+                    <span className="telemetry-value">{landerTelemetry.velocity} m/s</span>
+                    <span className="telemetry-sub">Vertical speed</span>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">FUEL RESERVE</span>
+                    <span className="telemetry-value">{landerTelemetry.fuel}%</span>
+                    <div className="battery-bar-container">
+                      <div className="battery-bar" style={{ width: `${landerTelemetry.fuel}%`, background: 'linear-gradient(90deg, #ff0055, #ffd000)' }}></div>
+                    </div>
+                  </div>
+                  <div className="telemetry-item">
+                    <span className="telemetry-label">THRUST CONTROL</span>
+                    <span className="telemetry-value" style={{ fontSize: '1rem', whiteSpace: 'nowrap' }}>{landerTelemetry.mainEngine}</span>
+                    <span className="telemetry-sub">Thruster status</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -971,6 +1139,43 @@ export default function Dashboard() {
                   <div className="map-info">
                     <span className="map-label">ACTIVE MISSION PATH</span>
                     <span className="map-value" ref={mapPathStatusRef}>Ready for simulation</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Scientific Payloads & Autonav Logs Card */}
+            <div className="glass-card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <i className="fa-solid fa-satellite header-icon"></i> SCIENTIFIC PAYLOADS & AUTONAV MATRIX
+                </h2>
+              </div>
+              <div className="panel-row">
+                {/* Payloads list */}
+                <div className="payload-list">
+                  {payloads.map((p, idx) => (
+                    <div className="payload-item" key={idx}>
+                      <span className="payload-name">{p.name}</span>
+                      <span className={`payload-status ${p.status}`}>
+                        <span className="pulse-dot"></span>
+                        {p.status.toUpperCase()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Autonav Diagnostic Console */}
+                <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+                  <div className="terminal-console">
+                    {autonavLogs.map((log, idx) => (
+                      <div className={`console-line ${log.type}`} key={idx}>
+                        <span className="time">[{log.time}]</span>
+                        <span className="tag">[{log.tag}]</span>
+                        <span>{log.text}</span>
+                      </div>
+                    ))}
+                    <div ref={consoleEndRef} />
                   </div>
                 </div>
               </div>
@@ -1147,7 +1352,7 @@ export default function Dashboard() {
           </section>
         </main>
 
-        {/* System log console footer */}
+        {/* System log footer */}
         <footer className="system-footer">
           <div className="system-logs">
             <i className="fa-solid fa-terminal console-icon"></i>

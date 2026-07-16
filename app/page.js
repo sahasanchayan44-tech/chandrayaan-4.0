@@ -573,6 +573,20 @@ export default function Dashboard() {
               throw new Error(err.error || 'Server rejected file upload');
             }
             writeLog(`Successfully uploaded encrypted asset ${file.name} locally.`);
+
+            // Connected to Firebase: Auto sync metadata to Firestore
+            try {
+              await setDoc(doc(db, 'files', encFilename), {
+                name: encFilename,
+                size: encryptedBlob.size,
+                url: `/api/files/${encodeURIComponent(encFilename)}`,
+                mtime: new Date().toISOString()
+              });
+              writeLog(`Successfully synced ${encFilename} metadata to Firebase Database.`);
+            } catch (fbErr) {
+              console.warn('Firebase metadata sync failed:', fbErr.message);
+            }
+
             setUploadProgress(100);
             setTimeout(() => {
               setIsUploading(false);
@@ -633,8 +647,23 @@ export default function Dashboard() {
                   throw new Error(errData.message || 'GitHub API upload failed');
                 }
 
-                setUploadProgress(100);
                 writeLog(`Successfully uploaded encrypted ${file.name} to GitHub cloud (gh-pages).`);
+
+                // Connected to Firebase: Auto sync metadata to Firestore
+                try {
+                  const rawUrl = `https://raw.githubusercontent.com/${settings.ghUsername}/${settings.ghRepo}/gh-pages/chandrayaan/${encodeURIComponent(encFilename)}`;
+                  await setDoc(doc(db, 'files', encFilename), {
+                    name: encFilename,
+                    size: encryptedBlob.size,
+                    url: rawUrl,
+                    mtime: new Date().toISOString()
+                  });
+                  writeLog(`Successfully synced ${encFilename} metadata to Firebase Database.`);
+                } catch (fbErr) {
+                  console.warn('Firebase metadata sync failed:', fbErr.message);
+                }
+
+                setUploadProgress(100);
                 setTimeout(() => {
                   setIsUploading(false);
                   loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken);
@@ -744,6 +773,43 @@ export default function Dashboard() {
       alert(`Error deleting file: ${error.message}`);
     }
   }
+
+  // Sync all local files to Firebase database
+  const syncToFirebase = useCallback(async () => {
+    setIsLoadingFiles(true);
+    writeLog('Initiating Firebase Database Cloud Sync...');
+    try {
+      const response = await fetch('/api/files');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const localFiles = await response.json();
+      
+      writeLog(`Found ${localFiles.length} local files. Synchronizing metadata with Firebase...`);
+      let successCount = 0;
+      
+      for (const file of localFiles) {
+        try {
+          await setDoc(doc(db, 'files', file.name), {
+            name: file.name,
+            size: file.size,
+            url: `/api/files/${encodeURIComponent(file.name)}`, // local path
+            mtime: file.mtime || new Date().toISOString()
+          });
+          successCount++;
+        } catch (err) {
+          console.warn(`Sync failed for ${file.name}:`, err.message);
+        }
+      }
+      
+      writeLog(`Firebase Cloud Sync completed successfully! Synced ${successCount}/${localFiles.length} files.`);
+      alert(`Firebase Cloud Sync completed successfully! Synced ${successCount}/${localFiles.length} files.`);
+      loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken);
+    } catch (e) {
+      writeLog(`Firebase Cloud Sync failed: ${e.message}`, true);
+      alert(`Firebase Cloud Sync failed: ${e.message}`);
+    } finally {
+      setIsLoadingFiles(false);
+    }
+  }, [currentMode, settings, loadFilesList, writeLog]);
 
   // Preview File
   async function previewFile(file) {
@@ -2045,12 +2111,21 @@ export default function Dashboard() {
 
               <div className="files-footer">
                 <span>{filteredFiles.length} item(s) found</span>
-                <button
-                  className="btn btn-small"
-                  onClick={() => loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken)}
-                >
-                  <i className="fa-solid fa-arrows-rotate"></i> REFRESH
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button
+                    className="btn btn-small btn-secondary"
+                    onClick={syncToFirebase}
+                    title="Synchronize all local database assets with Firebase"
+                  >
+                    <i className="fa-solid fa-cloud-arrow-up"></i> CLOUD SYNC
+                  </button>
+                  <button
+                    className="btn btn-small"
+                    onClick={() => loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken)}
+                  >
+                    <i className="fa-solid fa-arrows-rotate"></i> REFRESH
+                  </button>
+                </div>
               </div>
             </div>
           </section>

@@ -51,8 +51,10 @@ const SEED_DATA = {
     { id: 'v3', name: 'CY-HP-V3 Bipropellant Heavy Design', dryMass: '250 kg', wetMass: '450 kg', thrust: '800 N Bipropellant', maxAltitude: '300 m', maxRange: '800 m', isp: '290s' }
   ],
   hopper_versions: [
-    { id: 'v1.0.0', author: 'Dr. R. Keshav', date: '2026-04-12', description: 'Original CAD blueprint release for assembly approval.' },
-    { id: 'v1.0.4', author: 'Sanchayan S.', date: '2026-07-16', description: 'Integrated micro-nozzle attitude tolerances.' }
+    { id: 'V1', author: 'Dr. R. Keshav (Lead Propulsion)', date: '2026-04-12 09:15:32 UTC', message: 'Initial Vikram lander integrated CAD schema draft.', changeLog: 'Initialized Vikram lander interface geometry; Positioned fuel valve manifolds and structural composite brackets.', thrust: '400 N Mono-fuel', dryMass: '180 kg', wetMass: '320 kg', isp: '235s', maxAltitude: '120 m' },
+    { id: 'V2', author: 'Sanchayan S. (Avionics Engineer)', date: '2026-07-16 14:22:10 UTC', message: 'Optimize landing legs joint tolerances.', changeLog: 'Adjusted leg hinge offset angles for lunar regolith impact; Upgraded battery core interface telemetry.', thrust: '600 N Cold-Gas', dryMass: '210 kg', wetMass: '380 kg', isp: '120s', maxAltitude: '80 m' },
+    { id: 'V3', author: 'ISRO VSSC Team (Propulsion)', date: '2026-07-16 22:15:02 UTC', message: 'Configure dual bipropellant thruster limits.', changeLog: 'Upgraded Isp threshold to 290s; Re-calibrated fuel valve flow rate parameters.', thrust: '800 N Bipropellant', dryMass: '250 kg', wetMass: '450 kg', isp: '290s', maxAltitude: '300 m' },
+    { id: 'V4', author: 'Sanchayan S. (Avionics Engineer)', date: '2026-07-17 00:53:10 UTC', message: 'Integrate real-time telemetry line charts.', changeLog: 'Added dynamic LineChart SVG visualization for all analysis tabs; Connected ComponentTree real-time Firestore listeners.', thrust: '600 N Hybrid', dryMass: '220 kg', wetMass: '410 kg', isp: '270s', maxAltitude: '200 m' }
   ],
   hopper_logs: [
     { id: 'log-1', timestamp: '22:15:02', system: 'AVIONICS', message: 'System diagnostic checklist initialized... OK.' },

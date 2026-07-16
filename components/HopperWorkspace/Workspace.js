@@ -12,6 +12,7 @@ const ElectricalTab = lazy(() => import('./tabs/ElectricalTab'));
 const NavigationTab = lazy(() => import('./tabs/NavigationTab'));
 const ThermalTab = lazy(() => import('./tabs/ThermalTab'));
 const SimulationTab = lazy(() => import('./tabs/SimulationTab'));
+const VersionsTab = lazy(() => import('./tabs/VersionsTab'));
 const MaterialsTab = lazy(() => import('./tabs/MaterialsTab'));
 const ManufacturingTab = lazy(() => import('./tabs/ManufacturingTab'));
 const AssemblyTab = lazy(() => import('./tabs/AssemblyTab'));
@@ -134,7 +135,43 @@ export default function HopperWorkspace({
   handleCadMouseMove,
   handleCadMouseUp
 }) {
-  const currentDesign = hopperDesigns.find(d => d.id === activeHopperTab) || hopperDesigns[0];
+  // PDM Version control states
+  const [activeVersionId, setActiveVersionId] = useState('V4');
+  const [rollbackOverride, setRollbackOverride] = useState(null);
+  const [consoleLogs, setConsoleLogs] = useState([
+    { time: '21:40:02', category: 'AVIONICS', msg: 'System diagnostic: checking guidance sensors... OK.', type: 'info' },
+    { time: '21:40:10', category: 'PROPULSION', msg: 'Thrust vectoring limits loaded. Max capability 600 N.', type: 'info' },
+    { time: '21:40:15', category: 'POWER', msg: 'Operational safety buffer: Li-Sulfur battery health stable.', type: 'warn' }
+  ]);
+
+  const baseDesign = hopperDesigns.find(d => d.id === activeHopperTab) || hopperDesigns[0];
+  const currentDesign = useMemo(() => {
+    if (!rollbackOverride) return baseDesign;
+    return {
+      ...baseDesign,
+      dryMass: rollbackOverride.dryMass,
+      wetMass: rollbackOverride.wetMass,
+      thrust: rollbackOverride.thrust,
+      isp: rollbackOverride.isp,
+      maxAltitude: rollbackOverride.maxAltitude
+    };
+  }, [baseDesign, rollbackOverride]);
+
+  const handleRollback = useCallback((version) => {
+    setActiveVersionId(version.id);
+    setRollbackOverride(version);
+    
+    const timeStr = new Date().toISOString().substring(11, 19);
+    setConsoleLogs(prev => [
+      ...prev,
+      {
+        time: timeStr,
+        category: 'PDM SYSTEM',
+        msg: `Rolled back workspace active assembly to version ${version.id}. Configuration parameters restored.`,
+        type: 'info'
+      }
+    ]);
+  }, []);
 
   // UI State management
   const [selectedNode, setSelectedNode] = useState(null);
@@ -173,6 +210,7 @@ export default function HopperWorkspace({
 
   const workspaceTabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'versions', label: 'Versions' },
     { id: '3d_cad', label: '3D CAD' },
     { id: 'components', label: 'Components' },
     { id: 'structure', label: 'Structure' },
@@ -416,6 +454,14 @@ export default function HopperWorkspace({
                 <ThermalTab />
               </div>
 
+              {/* Version Control PDM */}
+              <div className={activeWorkspaceTab === 'versions' ? 'w-full h-full block' : 'hidden'}>
+                <VersionsTab 
+                  activeVersionId={activeVersionId}
+                  onRollback={handleRollback}
+                />
+              </div>
+
               {/* 9. Simulation */}
               <div className={activeWorkspaceTab === 'simulation' ? 'w-full h-full block' : 'hidden'}>
                 <SimulationTab 
@@ -541,9 +587,15 @@ export default function HopperWorkspace({
 
                   {activeBottomTab === 'logs' && (
                     <div className="space-y-1 font-mono text-[11px] text-slate-400">
-                      <div><span className="text-slate-600">[21:40:02]</span> <span className="text-cyan-400">[AVIONICS]</span> System diagnostic: checking guidance sensors... OK.</div>
-                      <div><span className="text-slate-600">[21:40:10]</span> <span className="text-cyan-400">[PROPULSION]</span> Thrust vectoring limits loaded. Max capability {currentDesign.thrust}.</div>
-                      <div><span className="text-slate-600">[21:40:15]</span> <span className="text-yellow-500">[POWER]</span> Operational safety buffer: Li-Sulfur battery health stable.</div>
+                      {consoleLogs.map((log, idx) => (
+                        <div key={idx}>
+                          <span className="text-slate-600">[{log.time}]</span>{' '}
+                          <span className={log.type === 'warn' ? 'text-yellow-500' : log.type === 'error' ? 'text-red-500' : 'text-cyan-400'}>
+                            [{log.category}]
+                          </span>{' '}
+                          {log.msg}
+                        </div>
+                      ))}
                     </div>
                   )}
 

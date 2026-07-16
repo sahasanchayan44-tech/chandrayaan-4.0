@@ -299,11 +299,91 @@ export default function Dashboard() {
 
   // --- CRYPTOGRAPHY ---
   async function sha256(message) {
-    const msgBuffer = new TextEncoder().encode(message);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.subtle) {
+      try {
+        const msgBuffer = new TextEncoder().encode(message);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      } catch (e) {
+        console.warn("Subtle crypto failed, falling back to JS implementation:", e);
+      }
+    }
+    return jsSha256(message);
   }
+
+  function jsSha256(str) {
+    function rotateRight(n, x) {
+      return (x >>> n) | (x << (32 - n));
+    }
+    const mathPow = Math.pow;
+    const maxWord = mathPow(2, 32);
+    const result = [];
+    const words = [];
+    let strLen = str.length * 8;
+    
+    const K = [];
+    let H = [];
+    let primeCounter = 0;
+    const isPrime = {};
+    for (let candidate = 2; primeCounter < 64; candidate++) {
+      if (!isPrime[candidate]) {
+        for (let i = candidate; i < 311; i += candidate) {
+          isPrime[i] = true;
+        }
+        H[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+        K[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+      }
+    }
+    
+    str += '\x80';
+    while (str.length % 64 - 56) str += '\x00';
+    for (let i = 0; i < str.length; i++) {
+      const charCode = str.charCodeAt(i);
+      words[i >> 2] |= charCode << (24 - (i % 4) * 8);
+    }
+    words[words.length] = ((strLen / maxWord) | 0);
+    words[words.length] = (strLen | 0);
+    
+    for (let j = 0; j < words.length; ) {
+      const w = words.slice(j, j += 16);
+      const oldH = H.slice(0);
+      for (let i = 0; i < 64; i++) {
+        const wItem = i < 16 ? w[i] : (
+          (rotateRight(17, w[i - 2]) ^ rotateRight(19, w[i - 2]) ^ (w[i - 2] >>> 10)) +
+          w[i - 7] +
+          (rotateRight(7, w[i - 15]) ^ rotateRight(18, w[i - 15]) ^ (w[i - 15] >>> 3)) +
+          w[i - 16]
+        ) | 0;
+        const a = H[0], e = H[4];
+        const temp1 = (H[7] +
+          (rotateRight(6, e) ^ rotateRight(11, e) ^ rotateRight(25, e)) +
+          ((e & H[5]) ^ (~e & H[6])) +
+          K[i] +
+          wItem
+        ) | 0;
+        const temp2 = ((rotateRight(2, a) ^ rotateRight(13, a) ^ rotateRight(22, a)) +
+          ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]))
+        ) | 0;
+        
+        const nextH = [(temp1 + temp2) | 0];
+        nextH.push(H[0], H[1], H[2]);
+        nextH.push((H[3] + temp1) | 0);
+        nextH.push(H[4], H[5], H[6]);
+        H = nextH;
+      }
+      for (let i = 0; i < 8; i++) {
+        H[i] = (H[i] + oldH[i]) | 0;
+      }
+    }
+    for (let i = 0; i < 8; i++) {
+      let word = H[i];
+      if (word < 0) word += maxWord;
+      result.push(word.toString(16).padStart(8, '0'));
+    }
+    return result.join('');
+  }
+
 
   const getFileKey = useCallback(async (pass) => {
     const encoder = new TextEncoder();

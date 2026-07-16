@@ -2,6 +2,11 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+// Firebase imports
+import { db, storage } from './firebase';
+import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+
 // Passcode Configuration
 const PASSCODE_HASH = 'a7a6fa669b0521b31f653dcb345091a123132025d1e2ae651b5fdec459478fe0'; // SHA-256 of 'ISRO-2026'
 const CRYPTO_SALT = 'ISRO_SALT_CY4_0';
@@ -449,6 +454,8 @@ export default function Dashboard() {
       computedMode = 'local';
     } else if (pref === 'cloud') {
       computedMode = 'cloud';
+    } else if (pref === 'firebase') {
+      computedMode = 'firebase';
     } else {
       if (host === 'localhost' || host === '127.0.0.1' || host === '' || host.startsWith('192.168.')) {
         computedMode = 'local';
@@ -458,10 +465,13 @@ export default function Dashboard() {
     }
     
     setCurrentMode(computedMode);
-    writeLog(computedMode === 'local' 
-      ? 'Switched to Local mode. Interfacing with Next.js Route Handlers.'
-      : `Switched to Cloud mode. Fetching repository data from GitHub: ${username}/${repo}`
-    );
+    if (computedMode === 'local') {
+      writeLog('Switched to Local mode. Interfacing with Next.js Route Handlers.');
+    } else if (computedMode === 'cloud') {
+      writeLog(`Switched to Cloud mode. Fetching repository data from GitHub: ${username}/${repo}`);
+    } else if (computedMode === 'firebase') {
+      writeLog('Switched to Firebase Database mode. Interfacing with Firestore & Cloud Storage.');
+    }
   }, [writeLog]);
 
   // --- API / ACTIONS ---
@@ -474,6 +484,20 @@ export default function Dashboard() {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         setFiles(data);
+      } else if (mode === 'firebase') {
+        const querySnapshot = await getDocs(collection(db, 'files'));
+        const fbFiles = querySnapshot.docs.map(doc => {
+          const item = doc.data();
+          return {
+            name: item.name,
+            size: item.size,
+            mtime: item.mtime ? new Date(item.mtime) : new Date(),
+            url: item.url,
+            sha: null,
+            gitUrl: null
+          };
+        });
+        setFiles(fbFiles);
       } else {
         // Query the gh-pages branch directly so dynamic uploads are visible instantly!
         const url = `https://api.github.com/repos/${username}/${repo}/contents/chandrayaan?ref=gh-pages`;
@@ -549,6 +573,25 @@ export default function Dashboard() {
               throw new Error(err.error || 'Server rejected file upload');
             }
             writeLog(`Successfully uploaded encrypted asset ${file.name} locally.`);
+            setUploadProgress(100);
+            setTimeout(() => {
+              setIsUploading(false);
+              loadFilesList(currentMode, settings.ghUsername, settings.ghRepo, settings.ghToken);
+            }, 800);
+          } else if (currentMode === 'firebase') {
+            setUploadProgress(70);
+            const storageRef = ref(storage, 'chandrayaan/' + encFilename);
+            await uploadBytes(storageRef, encryptedBlob);
+            const downloadUrl = await getDownloadURL(storageRef);
+            
+            await setDoc(doc(db, 'files', encFilename), {
+              name: encFilename,
+              size: encryptedBlob.size,
+              url: downloadUrl,
+              mtime: new Date().toISOString()
+            });
+            
+            writeLog(`Successfully uploaded encrypted asset ${file.name} to Firebase Cloud Database.`);
             setUploadProgress(100);
             setTimeout(() => {
               setIsUploading(false);
@@ -665,6 +708,10 @@ export default function Dashboard() {
           const err = await response.json();
           throw new Error(err.error || 'Server error deleting file');
         }
+      } else if (currentMode === 'firebase') {
+        const storageRef = ref(storage, 'chandrayaan/' + filename);
+        await deleteObject(storageRef);
+        await deleteDoc(doc(db, 'files', filename));
       } else {
         if (!settings.ghToken) throw new Error('GitHub API Token required.');
         const url = `https://api.github.com/repos/${settings.ghUsername}/${settings.ghRepo}/contents/chandrayaan/${encodeURIComponent(filename)}`;
@@ -2073,6 +2120,7 @@ export default function Dashboard() {
                     <option value="auto">Auto-detect (Recommended)</option>
                     <option value="cloud">Cloud-Only Mode (GitHub API)</option>
                     <option value="local">Local-Only Mode (Express Server)</option>
+                    <option value="firebase">Firebase Database Mode (Firestore/Cloud Storage)</option>
                   </select>
                 </div>
                 <div className="modal-actions">

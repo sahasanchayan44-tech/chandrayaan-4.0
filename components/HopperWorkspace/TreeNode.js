@@ -1,4 +1,6 @@
-export default function TreeNode({
+import { memo } from 'react';
+
+const TreeNode = memo(function TreeNode({
   node,
   isSelected,
   isFocused,
@@ -54,4 +56,6 @@ export default function TreeNode({
       )}
     </div>
   );
-}
+});
+
+export default TreeNode;

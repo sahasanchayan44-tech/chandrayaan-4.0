@@ -49,8 +49,12 @@ export default function PropertiesPanel({
     const rawId = selectedNode.id || selectedNode.name.split(':')[1]?.trim() || selectedNode.name;
     const nodeId = String(rawId).toLowerCase().replace(/[^a-z0-9]/g, '-');
 
+    // Stable hash code from nodeId to prevent Next.js hydration mismatches
+    const hash = String(nodeId).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const stableNum = 1000 + (hash % 9000);
+
     const defaults = {
-      uuid: data.uuid || `CY4-${nodeId.toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      uuid: data.uuid || `CY4-${nodeId.toUpperCase()}-${stableNum}`,
       material: data.material || (nodeId.includes('tank') || nodeId.includes('chassis') ? 'Titanium Gr.5 (Ti-6Al-4V)' : nodeId.includes('panels') ? 'Silicon Photo-Voltaic' : 'Silicon / Aluminum-Lithium'),
       mass: data.mass || (nodeId.includes('chassis') ? '42.5 kg' : nodeId.includes('tank') ? '18.2 kg' : nodeId.includes('legs') ? '14.8 kg' : '2.4 kg'),
       density: data.density || (nodeId.includes('chassis') ? '4.43 g/cm³' : nodeId.includes('valve') ? '7.85 g/cm³' : '2.70 g/cm³'),

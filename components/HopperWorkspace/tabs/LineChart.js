@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 
-export default function LineChart({
+const LineChart = memo(function LineChart({
   data = [],
   color = '#00e5ff',
   height = 120,
@@ -87,4 +87,6 @@ export default function LineChart({
       </div>
     </div>
   );
-}
+});
+
+export default LineChart;

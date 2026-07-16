@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import ComponentTree from './ComponentTree';
 
 export default function HopperWorkspace({
   activeHopperTab,
@@ -21,15 +22,7 @@ export default function HopperWorkspace({
 
   // UI State management
   const [selectedNode, setSelectedNode] = useState(null);
-  const [treeSearch, setTreeSearch] = useState('');
-  const [treeExpanded, setTreeExpanded] = useState({
-    root: true,
-    propulsion: true,
-    tanks: true,
-    avionics: true,
-    energy: true,
-    structure: true
-  });
+  const [breadcrumbText, setBreadcrumbText] = useState('');
 
   // Panel collapsed states
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -59,33 +52,6 @@ export default function HopperWorkspace({
       setSelectedNode(currentDesign.stack[0]);
     }
   }, [currentDesign]);
-
-  // Tree Expand/Collapse helper
-  const toggleTreeFolder = (folderKey) => {
-    setTreeExpanded(prev => ({ ...prev, [folderKey]: !prev[folderKey] }));
-  };
-
-  const expandAll = () => {
-    setTreeExpanded({
-      root: true,
-      propulsion: true,
-      tanks: true,
-      avionics: true,
-      energy: true,
-      structure: true
-    });
-  };
-
-  const collapseAll = () => {
-    setTreeExpanded({
-      root: false,
-      propulsion: false,
-      tanks: false,
-      avionics: false,
-      energy: false,
-      structure: false
-    });
-  };
 
   // Mouse move resizing handlers
   const startResizeLeft = useCallback((e) => {
@@ -140,12 +106,6 @@ export default function HopperWorkspace({
     };
   }, []);
 
-  // Filter component tree nodes based on search
-  const matchesSearch = (name) => {
-    if (!treeSearch) return true;
-    return name.toLowerCase().includes(treeSearch.toLowerCase());
-  };
-
   // Safe canvas ref fetcher
   const getActiveCanvasRef = () => {
     if (activeHopperTab === 'v1') return canvasV1Ref;
@@ -163,7 +123,7 @@ export default function HopperWorkspace({
           <span className="text-slate-500">/</span>
           <span>HOPPER_IDE</span>
           <span className="text-slate-500">/</span>
-          <span className="text-slate-300 font-bold uppercase">{currentDesign.id} DESIGN</span>
+          <span className="text-slate-300 font-bold uppercase">{breadcrumbText || `${currentDesign.id.toUpperCase()} DESIGN`}</span>
         </div>
         <div className="flex items-center space-x-3 text-slate-400">
           <span className="flex items-center space-x-1.5">
@@ -196,176 +156,10 @@ export default function HopperWorkspace({
               <i className="fa-solid fa-sitemap" title="Component Tree"></i>
             </div>
           ) : (
-            <div className="flex flex-col h-full overflow-hidden">
-              <div className="flex items-center justify-between p-2 border-b border-cyan-500/10 bg-slate-900/40">
-                <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Component Tree</span>
-                <div className="flex items-center space-x-1">
-                  <button onClick={expandAll} className="p-1 text-[10px] hover:text-cyan-400 cursor-pointer" title="Expand All">
-                    <i className="fa-solid fa-folder-open"></i>
-                  </button>
-                  <button onClick={collapseAll} className="p-1 text-[10px] hover:text-cyan-400 cursor-pointer" title="Collapse All">
-                    <i className="fa-solid fa-folder"></i>
-                  </button>
-                  <button onClick={() => setLeftCollapsed(true)} className="p-1 text-[10px] hover:text-cyan-400 cursor-pointer" title="Collapse Panel">
-                    <i className="fa-solid fa-angles-left"></i>
-                  </button>
-                </div>
-              </div>
-
-              {/* Search node */}
-              <div className="p-2 border-b border-cyan-500/10">
-                <div className="relative flex items-center bg-slate-950/60 rounded px-2 py-1 text-xs border border-slate-800">
-                  <i className="fa-solid fa-magnifying-glass text-slate-500 mr-1.5"></i>
-                  <input 
-                    type="text" 
-                    placeholder="Search stack..." 
-                    value={treeSearch}
-                    onChange={(e) => setTreeSearch(e.target.value)}
-                    className="w-full bg-transparent focus:outline-none text-slate-200 text-xs"
-                  />
-                  {treeSearch && (
-                    <button onClick={() => setTreeSearch('')} className="text-slate-500 hover:text-slate-300">
-                      <i className="fa-solid fa-xmark"></i>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Component Tree Listing */}
-              <div className="flex-1 overflow-y-auto p-2 text-xs font-mono space-y-1 select-none">
-                
-                {/* Assembly Root Node */}
-                <div>
-                  <div 
-                    onClick={() => toggleTreeFolder('root')}
-                    className="flex items-center space-x-1.5 py-1 px-1.5 rounded hover:bg-slate-800/40 cursor-pointer text-slate-300"
-                  >
-                    <i className={`fa-solid ${treeExpanded.root ? 'fa-caret-down' : 'fa-caret-right'} text-slate-500`}></i>
-                    <i className="fa-solid fa-cube text-cyan-400"></i>
-                    <span className="font-bold text-[11px] uppercase tracking-wider">{currentDesign.id.toUpperCase()}_ASSEMBLY</span>
-                  </div>
-
-                  {treeExpanded.root && (
-                    <div className="pl-4 border-l border-slate-800 ml-2.5 mt-1 space-y-1">
-                      
-                      {/* Propulsion folder */}
-                      <div>
-                        <div 
-                          onClick={() => toggleTreeFolder('propulsion')}
-                          className="flex items-center space-x-1.5 py-0.5 px-1 rounded hover:bg-slate-800/30 cursor-pointer"
-                        >
-                          <i className={`fa-solid ${treeExpanded.propulsion ? 'fa-caret-down' : 'fa-caret-right'} text-slate-500 text-[10px]`}></i>
-                          <i className="fa-solid fa-folder text-yellow-500"></i>
-                          <span>Propulsion System</span>
-                        </div>
-                        {treeExpanded.propulsion && (
-                          <div className="pl-4 ml-1.5 border-l border-slate-900 space-y-0.5 mt-0.5">
-                            {currentDesign.stack.slice(0, 2).map((comp, idx) => (
-                              matchesSearch(comp.name) && (
-                                <div 
-                                  key={idx}
-                                  onClick={() => setSelectedNode(comp)}
-                                  className={`flex items-center space-x-1.5 py-0.5 px-1.5 rounded cursor-pointer ${selectedNode === comp ? 'bg-cyan-500/25 border-l-2 border-cyan-400 text-cyan-200' : 'hover:bg-slate-800/25 text-slate-400'}`}
-                                >
-                                  <i className="fa-solid fa-gears text-[10px]"></i>
-                                  <span className="truncate">{comp.name.split(':')[1]?.trim() || comp.name}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Avionics folder */}
-                      <div>
-                        <div 
-                          onClick={() => toggleTreeFolder('avionics')}
-                          className="flex items-center space-x-1.5 py-0.5 px-1 rounded hover:bg-slate-800/30 cursor-pointer"
-                        >
-                          <i className={`fa-solid ${treeExpanded.avionics ? 'fa-caret-down' : 'fa-caret-right'} text-slate-500 text-[10px]`}></i>
-                          <i className="fa-solid fa-folder text-yellow-500"></i>
-                          <span>Avionics & Avion</span>
-                        </div>
-                        {treeExpanded.avionics && (
-                          <div className="pl-4 ml-1.5 border-l border-slate-900 space-y-0.5 mt-0.5">
-                            {currentDesign.stack.slice(2, 3).map((comp, idx) => (
-                              matchesSearch(comp.name) && (
-                                <div 
-                                  key={idx}
-                                  onClick={() => setSelectedNode(comp)}
-                                  className={`flex items-center space-x-1.5 py-0.5 px-1.5 rounded cursor-pointer ${selectedNode === comp ? 'bg-cyan-500/25 border-l-2 border-cyan-400 text-cyan-200' : 'hover:bg-slate-800/25 text-slate-400'}`}
-                                >
-                                  <i className="fa-solid fa-microchip text-[10px]"></i>
-                                  <span className="truncate">{comp.name.split(':')[1]?.trim() || comp.name}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Energy folder */}
-                      <div>
-                        <div 
-                          onClick={() => toggleTreeFolder('energy')}
-                          className="flex items-center space-x-1.5 py-0.5 px-1 rounded hover:bg-slate-800/30 cursor-pointer"
-                        >
-                          <i className={`fa-solid ${treeExpanded.energy ? 'fa-caret-down' : 'fa-caret-right'} text-slate-500 text-[10px]`}></i>
-                          <i className="fa-solid fa-folder text-yellow-500"></i>
-                          <span>Power & Thermal</span>
-                        </div>
-                        {treeExpanded.energy && (
-                          <div className="pl-4 ml-1.5 border-l border-slate-900 space-y-0.5 mt-0.5">
-                            {currentDesign.stack.slice(3, 4).map((comp, idx) => (
-                              matchesSearch(comp.name) && (
-                                <div 
-                                  key={idx}
-                                  onClick={() => setSelectedNode(comp)}
-                                  className={`flex items-center space-x-1.5 py-0.5 px-1.5 rounded cursor-pointer ${selectedNode === comp ? 'bg-cyan-500/25 border-l-2 border-cyan-400 text-cyan-200' : 'hover:bg-slate-800/25 text-slate-400'}`}
-                                >
-                                  <i className="fa-solid fa-bolt text-[10px]"></i>
-                                  <span className="truncate">{comp.name.split(':')[1]?.trim() || comp.name}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Structure folder */}
-                      <div>
-                        <div 
-                          onClick={() => toggleTreeFolder('structure')}
-                          className="flex items-center space-x-1.5 py-0.5 px-1 rounded hover:bg-slate-800/30 cursor-pointer"
-                        >
-                          <i className={`fa-solid ${treeExpanded.structure ? 'fa-caret-down' : 'fa-caret-right'} text-slate-500 text-[10px]`}></i>
-                          <i className="fa-solid fa-folder text-yellow-500"></i>
-                          <span>Structural Frame</span>
-                        </div>
-                        {treeExpanded.structure && (
-                          <div className="pl-4 ml-1.5 border-l border-slate-900 space-y-0.5 mt-0.5">
-                            {currentDesign.stack.slice(4, 5).map((comp, idx) => (
-                              matchesSearch(comp.name) && (
-                                <div 
-                                  key={idx}
-                                  onClick={() => setSelectedNode(comp)}
-                                  className={`flex items-center space-x-1.5 py-0.5 px-1.5 rounded cursor-pointer ${selectedNode === comp ? 'bg-cyan-500/25 border-l-2 border-cyan-400 text-cyan-200' : 'hover:bg-slate-800/25 text-slate-400'}`}
-                                >
-                                  <i className="fa-solid fa-cubes text-[10px]"></i>
-                                  <span className="truncate">{comp.name.split(':')[1]?.trim() || comp.name}</span>
-                                </div>
-                              )
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </div>
+            <ComponentTree 
+              onSelectNode={setSelectedNode} 
+              onBreadcrumbChange={setBreadcrumbText} 
+            />
           )}
 
           {/* Left panel resize handle */}

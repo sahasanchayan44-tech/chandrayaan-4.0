@@ -30,6 +30,63 @@ function formatBytes(bytes, decimals = 2) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
+const hopperDesigns = [
+  {
+    id: 'v1',
+    name: 'CY-HP-V1 (Monopropellant Hydrazine)',
+    desc: 'High-thrust chemical monopropellant system designed for rapid elevation changes and long-range ballistic hops across deep craters.',
+    dryMass: '45 kg',
+    wetMass: '115 kg',
+    thrust: '440 N',
+    maxRange: '800 m',
+    maxAltitude: '150 m',
+    isp: '235 s',
+    stack: [
+      { name: 'Propulsion: Monopropellant Thrusters (4x)', desc: 'Hydrazine thrusters for attitude control and jump impulses', status: 'Ready', health: 100 },
+      { name: 'Tanks: Titanium Propellant Cell', desc: 'Diaphragm-equipped pressurised fuel delivery tank', status: '85% Fill', health: 98 },
+      { name: 'Avionics: Autonav Guidance Unit', desc: 'Real-time IMU + LiDAR navigation array for touchdown site matching', status: 'Active', health: 96 },
+      { name: 'Energy: Solar-Mesh Recharge Array', desc: 'Flexible high-efficiency solar fabric wrapping outer frame', status: '100% Charge', health: 100 },
+      { name: 'Structure: Carbon-Composite Frame', desc: 'Ultra-lightweight shock-absorbing truss shell with landing legs', status: 'Nominal', health: 99 }
+    ]
+  },
+  {
+    id: 'v2',
+    name: 'CY-HP-V2 (Gaseous Cold-Gas Hybrid)',
+    desc: 'Clean nitrogen cold-gas system engineered specifically for shadowed ice craters to prevent landing plume chemical contamination of pristine ice.',
+    dryMass: '38 kg',
+    wetMass: '68 kg',
+    thrust: '180 N',
+    maxRange: '350 m',
+    maxAltitude: '60 m',
+    isp: '70 s',
+    stack: [
+      { name: 'Propulsion: High-Pressure Cold-Gas Jets (8x)', desc: 'Micro-thruster cluster for precision vectoring and low-gravity lift', status: 'Ready', health: 100 },
+      { name: 'Tanks: Carbon-Fiber Gas Cylinders (2x)', desc: 'Storing high-pressure nitrogen gas at 300 bar pressure', status: '92% Pressure', health: 99 },
+      { name: 'Sensors: Dual Laser Altimeter Array', desc: 'Sub-millimeter terrain scanning altimeter for slope matching', status: 'Standby', health: 100 },
+      { name: 'Energy: Li-Sulfur Thermal battery block', desc: 'High-density solid-state batteries insulated against -180°C cold', status: '95% Capacity', health: 97 },
+      { name: 'Structure: Aluminum-Lithium Landing Pad', desc: 'Wide footprint landing base designed for powdery lunar soil stability', status: 'Nominal', health: 95 }
+    ]
+  },
+  {
+    id: 'v3',
+    name: 'CY-HP-V3 (Bipropellant Lander-Link)',
+    desc: 'Advanced bipropellant (MMH/NTO) hopper serving as an heavy payload shuttle between Vikram Lander and shadowed polar ice sites.',
+    dryMass: '95 kg',
+    wetMass: '240 kg',
+    thrust: '880 N',
+    maxRange: '2.5 km',
+    maxAltitude: '500 m',
+    isp: '310 s',
+    stack: [
+      { name: 'Propulsion: Liquid Bipropellant Engine (1x)', desc: 'Deep-throttling main engine (10% to 100% control)', status: 'Armed', health: 99 },
+      { name: 'Tanks: MMH Fuel & NTO Oxidizer Tanks', desc: 'Separate pressurized fuel cells with helium pressure supply', status: '78% Fill', health: 98 },
+      { name: 'Guidance: Optical Flow Descent Camera', desc: 'Real-time hazard detection camera matching crater hazards', status: 'Active', health: 100 },
+      { name: 'Energy: Radioisotope Thermoelectric Gen (RTG)', desc: 'Miniaturised thermal cell for uninterrupted power during lunar night', status: 'Operational', health: 99 },
+      { name: 'Structure: Hexagonal Honeycomb Core', desc: 'Titanium honeycomb core designed for heavy payload carrying capabilities', status: 'Nominal', health: 100 }
+    ]
+  }
+];
+
 export default function Dashboard() {
   // --- STATE ---
   const [authorized, setAuthorized] = useState(false);
@@ -46,6 +103,7 @@ export default function Dashboard() {
   });
   const [currentMode, setCurrentMode] = useState('local');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeHopperTab, setActiveHopperTab] = useState('v1');
 
   // File explorer state
   const [files, setFiles] = useState([]);
@@ -1270,6 +1328,74 @@ export default function Dashboard() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Lunar Hopper Design Matrix Card */}
+            <div className="glass-card">
+              <div className="card-header">
+                <h2 className="card-title">
+                  <i className="fa-solid fa-rocket header-icon"></i> LUNAR HOPPER DESIGN MATRIX
+                </h2>
+                <span className="badge">3 DESIGNS LOADED</span>
+              </div>
+              
+              {/* Tabs */}
+              <div className="hopper-tabs">
+                {hopperDesigns.map(design => (
+                  <button
+                    key={design.id}
+                    className={`hopper-tab-btn ${activeHopperTab === design.id ? 'active' : ''}`}
+                    onClick={() => setActiveHopperTab(design.id)}
+                  >
+                    {design.id.toUpperCase()} MODEL
+                  </button>
+                ))}
+              </div>
+
+              {/* Hopper details */}
+              {(() => {
+                const activeHopper = hopperDesigns.find(d => d.id === activeHopperTab) || hopperDesigns[0];
+                return (
+                  <div className="hopper-content">
+                    <p className="hopper-desc">{activeHopper.desc}</p>
+                    
+                    {/* Specifications Grid */}
+                    <div className="hopper-spec-grid">
+                      <div className="hopper-spec-item">
+                        <span className="hopper-spec-label">DRY / WET MASS</span>
+                        <span className="hopper-spec-value">{activeHopper.dryMass} / {activeHopper.wetMass}</span>
+                      </div>
+                      <div className="hopper-spec-item">
+                        <span className="hopper-spec-label">MAX RANGE (HOP)</span>
+                        <span className="hopper-spec-value" style={{ color: 'var(--color-primary)' }}>{activeHopper.maxRange}</span>
+                      </div>
+                      <div className="hopper-spec-item">
+                        <span className="hopper-spec-label">THRUST / ISP</span>
+                        <span className="hopper-spec-value" style={{ color: 'var(--color-success)' }}>{activeHopper.thrust} / {activeHopper.isp}</span>
+                      </div>
+                    </div>
+
+                    {/* Component Stack */}
+                    <div className="hopper-stack-title">
+                      <i className="fa-solid fa-layer-group"></i> COMPONENT STACK INTEGRATION
+                    </div>
+                    <div className="hopper-stack">
+                      {activeHopper.stack.map((comp, idx) => (
+                        <div className="stack-component" key={idx}>
+                          <div className="stack-comp-header">
+                            <span className="stack-comp-name">{comp.name}</span>
+                            <span className="stack-comp-status">{comp.status}</span>
+                          </div>
+                          <p className="stack-comp-desc">{comp.desc}</p>
+                          <div className="stack-comp-health-bar">
+                            <div className="stack-comp-health-fill" style={{ width: `${comp.health}%` }}></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Secure Files Inventory */}

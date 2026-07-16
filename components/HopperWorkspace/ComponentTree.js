@@ -6,6 +6,36 @@ import TreeNode from './TreeNode';
 // Firebase imports (ready for later integration)
 import { db } from '../../app/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import { HopperRepository } from '../../app/HopperRepository';
+
+// Helper to rebuild nested tree data from flat Firestore list
+function buildTreeFromFlatList(flatList) {
+  // Find the root element (level === 0)
+  const root = flatList.find(item => item.level === 0 || !item.parentId);
+  if (!root) return DEFAULT_TREE_DATA;
+
+  const buildNode = (node) => {
+    // Find children whose parentId matches node.id
+    const children = flatList.filter(item => item.parentId === node.id || (node.id === 'engine-assembly' && ['thruster-1', 'thruster-2', 'fuel-valve', 'nozzle'].includes(item.id)));
+    
+    // Deduplicate children list and map
+    const mappedChildren = [];
+    const seen = new Set();
+    children.forEach(child => {
+      if (!seen.has(child.id) && child.id !== node.id) {
+        seen.add(child.id);
+        mappedChildren.push(buildNode(child));
+      }
+    });
+
+    return {
+      ...node,
+      children: mappedChildren.length > 0 ? mappedChildren : undefined
+    };
+  };
+
+  return buildNode(root);
+}
 
 const DEFAULT_TREE_DATA = {
   id: 'lunar-hopper',
@@ -92,26 +122,13 @@ export default function ComponentTree({ onSelectNode, onBreadcrumbChange }) {
   const [scrollTop, setScrollTop] = useState(0);
   const scrollContainerRef = useRef(null);
 
-  // Ready for Firebase: Attempt to query Firestore component tree database
+  // Subscribe to real-time component updates
   useEffect(() => {
-    let active = true;
-    async function loadTreeFromFirebase() {
-      try {
-        const querySnapshot = await getDocs(collection(db, 'component_tree'));
-        if (!querySnapshot.empty && active) {
-          const fbDocs = [];
-          querySnapshot.forEach(doc => {
-            fbDocs.push(doc.data());
-          });
-          console.log("Loaded component tree structure from Firebase Firestore:", fbDocs);
-          // (Data mapping to DEFAULT_TREE_DATA hierarchy can be applied here)
-        }
-      } catch (err) {
-        console.warn("Firebase component tree load deferred (using local default data):", err.message);
-      }
-    }
-    loadTreeFromFirebase();
-    return () => { active = false; };
+    const unsubscribe = HopperRepository.subscribeComponents((flatList) => {
+      const nestedTree = buildTreeFromFlatList(flatList);
+      setTreeData(nestedTree);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Compute visible flattened list of nodes

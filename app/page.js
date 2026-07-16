@@ -9,6 +9,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 
 // IDE Component Import
 import HopperWorkspace from '../components/HopperWorkspace/Workspace';
+import { seedFirebaseCollections } from './HopperRepository';
 
 // Passcode Configuration
 const PASSCODE_HASH = 'a7a6fa669b0521b31f653dcb345091a123132025d1e2ae651b5fdec459478fe0'; // SHA-256 of 'ISRO-2026'
@@ -1264,6 +1265,9 @@ export default function Dashboard() {
   // Bootstrap app when authorized
   useEffect(() => {
     if (!authorized) return;
+
+    // Seed Firestore collections
+    seedFirebaseCollections();
 
     async function loadLocalConfig() {
       const host = window.location.hostname;

@@ -17,4 +17,16 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 const storage = getStorage(app);
 
+// Enable offline persistence for client-side caching
+import { enableIndexedDbPersistence } from "firebase/firestore";
+if (typeof window !== "undefined") {
+  enableIndexedDbPersistence(db).catch((err) => {
+    if (err.code === 'failed-precondition') {
+      console.warn("Firestore offline persistence: Multiple tabs open. Sync disabled on this tab.");
+    } else if (err.code === 'unimplemented') {
+      console.warn("Firestore offline persistence: Browser unsupported.");
+    }
+  });
+}
+
 export { app, db, storage };

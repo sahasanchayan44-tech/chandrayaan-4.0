@@ -1,6 +1,23 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import ComponentTree from './ComponentTree';
 import PropertiesPanel from './PropertiesPanel';
+
+// Lazy load all 15 Workspace Tab views
+const OverviewTab = lazy(() => import('./tabs/OverviewTab'));
+const CadTab = lazy(() => import('./tabs/CadTab'));
+const ComponentsTab = lazy(() => import('./tabs/ComponentsTab'));
+const StructureTab = lazy(() => import('./tabs/StructureTab'));
+const PropulsionTab = lazy(() => import('./tabs/PropulsionTab'));
+const ElectricalTab = lazy(() => import('./tabs/ElectricalTab'));
+const NavigationTab = lazy(() => import('./tabs/NavigationTab'));
+const ThermalTab = lazy(() => import('./tabs/ThermalTab'));
+const SimulationTab = lazy(() => import('./tabs/SimulationTab'));
+const MaterialsTab = lazy(() => import('./tabs/MaterialsTab'));
+const ManufacturingTab = lazy(() => import('./tabs/ManufacturingTab'));
+const AssemblyTab = lazy(() => import('./tabs/AssemblyTab'));
+const TestingTab = lazy(() => import('./tabs/TestingTab'));
+const MissionReadinessTab = lazy(() => import('./tabs/MissionReadinessTab'));
+const DocumentationTab = lazy(() => import('./tabs/DocumentationTab'));
 
 export default function HopperWorkspace({
   activeHopperTab,
@@ -24,6 +41,25 @@ export default function HopperWorkspace({
   // UI State management
   const [selectedNode, setSelectedNode] = useState(null);
   const [breadcrumbText, setBreadcrumbText] = useState('');
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('3d_cad');
+
+  const workspaceTabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: '3d_cad', label: '3D CAD' },
+    { id: 'components', label: 'Components' },
+    { id: 'structure', label: 'Structure' },
+    { id: 'propulsion', label: 'Propulsion' },
+    { id: 'electrical', label: 'Electrical' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'thermal', label: 'Thermal' },
+    { id: 'simulation', label: 'Simulation' },
+    { id: 'materials', label: 'Materials' },
+    { id: 'manufacturing', label: 'Manufacturing' },
+    { id: 'assembly', label: 'Assembly' },
+    { id: 'testing', label: 'Testing' },
+    { id: 'mission_readiness', label: 'Mission Readiness' },
+    { id: 'documentation', label: 'Documentation' }
+  ];
 
   // Panel collapsed states
   const [leftCollapsed, setLeftCollapsed] = useState(false);
@@ -175,72 +211,118 @@ export default function HopperWorkspace({
         {/* CENTER PANEL: CAD Viewport + Bottom Panel */}
         <div className="flex-1 flex flex-col min-w-0 bg-slate-950/20">
           
+          {/* Horizontal View Tab Bar */}
+          <div className="flex items-center overflow-x-auto whitespace-nowrap bg-slate-900/60 border-b border-cyan-500/10 px-2 py-1 scrollbar-none shrink-0 select-none">
+            {workspaceTabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveWorkspaceTab(tab.id)}
+                className={`px-3 py-1.5 text-[10px] font-mono hover:text-cyan-400 cursor-pointer transition-colors border-b-2 font-bold ${activeWorkspaceTab === tab.id ? 'border-cyan-400 text-cyan-300 bg-slate-950/20' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
+              >
+                {tab.label.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
           {/* Viewport content area */}
-          <div className="flex-1 min-h-[300px] flex flex-col relative overflow-hidden">
+          <div className="flex-1 min-h-[300px] flex flex-col relative overflow-hidden bg-slate-950/40">
             
-            {/* Viewport details overlay */}
-            <div className="absolute top-4 left-4 z-10 flex flex-col pointer-events-none select-none">
-              <span className="text-sm font-bold text-cyan-400 uppercase tracking-wide">{currentDesign.name}</span>
-              <span className="text-[10px] text-slate-400 font-mono mt-0.5">MASS: DRY {currentDesign.dryMass} / WET {currentDesign.wetMass}</span>
-            </div>
-
-            <div className="absolute top-4 right-4 z-10 pointer-events-none select-none text-right font-mono text-[9px] text-slate-500 space-y-0.5">
-              <div>VERTICES: {activeHopperTab === 'v1' ? '2,408' : activeHopperTab === 'v2' ? '1,840' : '3,120'}</div>
-              <div>ENGINE: HTML5 WIREFRAME</div>
-              <div>FPS: 60 (STABLE)</div>
-            </div>
-
-            {/* Actual CAD canvas rendering */}
-            <div className="w-full h-full relative bg-slate-950/80">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,180,216,0.04),transparent)]"></div>
-              
-              <canvas
-                ref={getActiveCanvasRef()}
-                onMouseDown={handleCadMouseDown}
-                onMouseMove={handleCadMouseMove}
-                onMouseUp={handleCadMouseUp}
-                onMouseLeave={handleCadMouseUp}
-                className="w-full h-full block relative cursor-grab active:cursor-grabbing z-0"
-              />
-
-              {/* Viewport bottom toolbar overlay */}
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between z-10">
-                <div className="flex items-center space-x-1.5 bg-slate-950/80 border border-slate-800 rounded p-1">
-                  <button 
-                    onClick={() => setCadOrbit(!cadOrbit)}
-                    className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadOrbit ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
-                  >
-                    <i className="fa-solid fa-rotate"></i>
-                    <span>{cadOrbit ? 'ORBIT LOCK' : 'FREE ORBIT'}</span>
-                  </button>
-                  <button 
-                    onClick={() => setCadWireframe(!cadWireframe)}
-                    className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadWireframe ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
-                  >
-                    <i className="fa-solid fa-circle-nodes"></i>
-                    <span>{cadWireframe ? 'SOLID VIEW' : 'WIREFRAME'}</span>
-                  </button>
-                  <button 
-                    onClick={() => setCadExploded(!cadExploded)}
-                    className={`px-2 py-1 text-[10px] font-mono rounded transition-colors cursor-pointer flex items-center space-x-1 ${cadExploded ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-400/30' : 'text-slate-400 hover:bg-slate-800'}`}
-                  >
-                    <i className="fa-solid fa-cubes"></i>
-                    <span>{cadExploded ? 'COLLAPSE' : 'EXPLODE'}</span>
-                  </button>
-                </div>
-
-                <a 
-                  href="https://viewer.autodesk.com/" 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="px-2.5 py-1 bg-cyan-600 hover:bg-cyan-500 active:bg-cyan-700 text-white font-mono text-[10px] rounded transition-colors flex items-center space-x-1 cursor-pointer"
-                >
-                  <i className="fa-solid fa-cube"></i>
-                  <span>CAD 360 VIEW</span>
-                </a>
+            <Suspense fallback={
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-cyan-400 font-mono text-[10px] select-none">
+                <i className="fa-solid fa-gear animate-spin text-lg mb-2 text-cyan-500/80"></i>
+                <span>LOADING WORKSPACE SYSTEM MODULE...</span>
+              </div>
+            }>
+              {/* 1. Overview */}
+              <div className={activeWorkspaceTab === 'overview' ? 'w-full h-full block' : 'hidden'}>
+                <OverviewTab />
               </div>
 
-            </div>
+              {/* 2. 3D CAD */}
+              <div className={activeWorkspaceTab === '3d_cad' ? 'w-full h-full block' : 'hidden'}>
+                <CadTab 
+                  currentDesign={currentDesign}
+                  activeHopperTab={activeHopperTab}
+                  canvasV1Ref={canvasV1Ref}
+                  canvasV2Ref={canvasV2Ref}
+                  canvasV3Ref={canvasV3Ref}
+                  handleCadMouseDown={handleCadMouseDown}
+                  handleCadMouseMove={handleCadMouseMove}
+                  handleCadMouseUp={handleCadMouseUp}
+                  cadOrbit={cadOrbit}
+                  setCadOrbit={setCadOrbit}
+                  cadWireframe={cadWireframe}
+                  setCadWireframe={setCadWireframe}
+                  cadExploded={cadExploded}
+                  setCadExploded={setCadExploded}
+                />
+              </div>
+
+              {/* 3. Components */}
+              <div className={activeWorkspaceTab === 'components' ? 'w-full h-full block' : 'hidden'}>
+                <ComponentsTab />
+              </div>
+
+              {/* 4. Structure */}
+              <div className={activeWorkspaceTab === 'structure' ? 'w-full h-full block' : 'hidden'}>
+                <StructureTab />
+              </div>
+
+              {/* 5. Propulsion */}
+              <div className={activeWorkspaceTab === 'propulsion' ? 'w-full h-full block' : 'hidden'}>
+                <PropulsionTab />
+              </div>
+
+              {/* 6. Electrical */}
+              <div className={activeWorkspaceTab === 'electrical' ? 'w-full h-full block' : 'hidden'}>
+                <ElectricalTab />
+              </div>
+
+              {/* 7. Navigation */}
+              <div className={activeWorkspaceTab === 'navigation' ? 'w-full h-full block' : 'hidden'}>
+                <NavigationTab />
+              </div>
+
+              {/* 8. Thermal */}
+              <div className={activeWorkspaceTab === 'thermal' ? 'w-full h-full block' : 'hidden'}>
+                <ThermalTab />
+              </div>
+
+              {/* 9. Simulation */}
+              <div className={activeWorkspaceTab === 'simulation' ? 'w-full h-full block' : 'hidden'}>
+                <SimulationTab />
+              </div>
+
+              {/* 10. Materials */}
+              <div className={activeWorkspaceTab === 'materials' ? 'w-full h-full block' : 'hidden'}>
+                <MaterialsTab />
+              </div>
+
+              {/* 11. Manufacturing */}
+              <div className={activeWorkspaceTab === 'manufacturing' ? 'w-full h-full block' : 'hidden'}>
+                <ManufacturingTab />
+              </div>
+
+              {/* 12. Assembly */}
+              <div className={activeWorkspaceTab === 'assembly' ? 'w-full h-full block' : 'hidden'}>
+                <AssemblyTab />
+              </div>
+
+              {/* 13. Testing */}
+              <div className={activeWorkspaceTab === 'testing' ? 'w-full h-full block' : 'hidden'}>
+                <TestingTab />
+              </div>
+
+              {/* 14. Mission Readiness */}
+              <div className={activeWorkspaceTab === 'mission_readiness' ? 'w-full h-full block' : 'hidden'}>
+                <MissionReadinessTab />
+              </div>
+
+              {/* 15. Documentation */}
+              <div className={activeWorkspaceTab === 'documentation' ? 'w-full h-full block' : 'hidden'}>
+                <DocumentationTab />
+              </div>
+            </Suspense>
 
           </div>
 
